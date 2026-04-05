@@ -1,0 +1,3398 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบคุมการเบิกจ่ายงบประมาณ | สนส.กทม. พื้นที่ 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --navy: #0D2B5E;
+    --navy-dark: #081A3B;
+    --navy-mid: #16407A;
+    --gold: #C9A227;
+    --gold-light: #E8C04A;
+    --gold-pale: #FFF8E7;
+    --teal: #1B7A8C;
+    --teal-light: #2AABB8;
+    --red: #C0392B;
+    --red-light: #E74C3C;
+    --green: #1A7A4A;
+    --green-light: #27AE60;
+    --orange: #D35400;
+    --bg: #F0F4F8;
+    --bg-card: #FFFFFF;
+    --border: #D8E2EF;
+    --text-main: #1A2744;
+    --text-sub: #5A6A8A;
+    --text-light: #8FA0BF;
+    --shadow: 0 2px 12px rgba(13,43,94,0.10);
+    --shadow-lg: 0 8px 32px rgba(13,43,94,0.15);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--bg);
+    color: var(--text-main);
+    font-size: 15px;
+    min-height: 100vh;
+  }
+
+  /* ===== TOP HEADER ===== */
+  .top-header {
+    background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy-mid) 60%, #1E5FAD 100%);
+    color: white;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    min-height: 72px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-emblem {
+    width: 56px; height: 56px; flex-shrink: 0;
+    background: transparent;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+  }
+  .header-title { flex: 1; }
+  .header-title h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.3px; }
+  .header-title p { font-size: 13px; opacity: 0.75; margin-top: 2px; }
+  .header-meta {
+    display: flex; gap: 16px; align-items: center;
+    font-size: 13px;
+  }
+  .header-meta .badge {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 20px;
+    padding: 4px 14px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #4AE080;
+    animation: pulse 1.8s infinite;
+  }
+  @keyframes pulse {
+    0%,100%{ opacity:1; transform:scale(1); }
+    50%{ opacity:0.5; transform:scale(1.4); }
+  }
+  #clock { font-weight: 600; font-size: 14px; }
+
+  /* ===== NAV TABS ===== */
+  .nav-bar {
+    background: var(--navy);
+    display: flex; gap: 2px;
+    padding: 0 32px;
+    border-bottom: 3px solid var(--gold);
+  }
+  .nav-tab {
+    padding: 12px 22px;
+    color: rgba(255,255,255,0.65);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -3px;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 7px;
+    white-space: nowrap;
+  }
+  .nav-tab:hover { color: rgba(255,255,255,0.9); }
+  .nav-tab.active {
+    color: var(--gold-light);
+    border-bottom-color: var(--gold-light);
+    font-weight: 700;
+  }
+
+  /* ===== MAIN LAYOUT ===== */
+  .main { padding: 24px 32px; max-width: 1600px; margin: 0 auto; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ===== CARDS ===== */
+  .card {
+    background: var(--bg-card);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    overflow: visible;
+  }
+  .card-header {
+    background: linear-gradient(90deg, var(--navy) 0%, var(--navy-mid) 100%);
+    color: white;
+    padding: 13px 20px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 15px; font-weight: 700;
+    border-radius: 9px 9px 0 0;
+  }
+  .card-header .icon { font-size: 18px; }
+  .card-body { padding: 20px; }
+  /* Tables inside cards need overflow for horizontal scroll */
+  .data-table-wrap { overflow-x: auto; border-radius: 0 0 9px 9px; }
+
+  /* ===== KPI CARDS ===== */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: white;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 8px;
+    position: relative; overflow: hidden;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 4px;
+  }
+  .kpi-card.blue::before { background: linear-gradient(90deg, var(--navy), var(--teal)); }
+  .kpi-card.gold::before { background: linear-gradient(90deg, var(--gold), #F0C040); }
+  .kpi-card.green::before { background: linear-gradient(90deg, var(--green), var(--green-light)); }
+  .kpi-card.red::before { background: linear-gradient(90deg, var(--red), var(--red-light)); }
+  .kpi-label { font-size: 12px; color: var(--text-sub); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-value { font-size: 22px; font-weight: 800; color: var(--text-main); word-break: break-all; line-height: 1.2; }
+  .kpi-sub { font-size: 12px; color: var(--text-sub); }
+  .kpi-icon {
+    position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+    font-size: 36px; opacity: 0.08;
+  }
+  .progress-wrap { margin-top: 4px; }
+  .progress-bar-bg {
+    height: 6px; background: #E8EFF8;
+    border-radius: 3px; overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, var(--teal), var(--teal-light));
+    transition: width 1s ease;
+  }
+
+  /* ===== GRIDS ===== */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin-bottom: 24px; }
+  @media(max-width:900px){ .grid-2,.grid-3{ grid-template-columns:1fr; } }
+
+  /* ===== SUMMARY TABLE ===== */
+  .summary-table { width: 100%; border-collapse: collapse; }
+  .summary-table th {
+    background: var(--navy);
+    color: white;
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .summary-table th.right { text-align: right; }
+  .summary-table td {
+    padding: 9px 14px;
+    font-size: 13.5px;
+    border-bottom: 1px solid #EBF0F8;
+    vertical-align: middle;
+  }
+  .summary-table tr:last-child td { border-bottom: none; }
+  .summary-table tr:hover td { background: #F5F8FF; }
+  .summary-table tr.total td {
+    font-weight: 800;
+    background: var(--gold-pale);
+    border-top: 2px solid var(--gold);
+    color: var(--navy-dark);
+  }
+  .summary-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pct-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .pct-high { background: #D5F5E3; color: #1A7A4A; }
+  .pct-mid { background: #FEF9E7; color: #B7770D; }
+  .pct-low { background: #FDECEA; color: #C0392B; }
+
+  /* ===== FILTER BAR ===== */
+  .filter-bar {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+    box-shadow: var(--shadow);
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 5px; min-width: 180px; }
+  .filter-group label { font-size: 12px; color: var(--text-sub); font-weight: 600; }
+  .filter-group select, .filter-group input {
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 11px;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 14px;
+    color: var(--text-main);
+    background: white;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .filter-group select:focus, .filter-group input:focus {
+    border-color: var(--navy);
+  }
+  .btn {
+    padding: 8px 20px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: var(--navy); color: white; }
+  .btn-primary:hover { background: var(--navy-mid); }
+  .btn-gold { background: var(--gold); color: white; }
+  .btn-gold:hover { background: var(--gold-light); }
+  .btn-outline { background: white; color: var(--navy); border: 1.5px solid var(--navy); }
+  .btn-success { background: var(--green); color: white; }
+  .btn-success:hover { background: var(--green-light); }
+  .btn-danger { background: var(--red); color: white; }
+
+  /* ===== DATA TABLE ===== */
+  .data-table-wrap { overflow-x: auto; }
+  .data-table { width: 100%; border-collapse: collapse; min-width: 900px; }
+  .data-table thead th {
+    background: var(--navy);
+    color: white;
+    padding: 11px 14px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  .data-table thead th:hover { background: var(--navy-mid); }
+  .data-table thead th.right { text-align: right; }
+  .data-table tbody tr { transition: background 0.15s; }
+  .data-table tbody tr:hover td { background: #EEF3FC; }
+  .data-table tbody td {
+    padding: 9px 14px;
+    font-size: 13.5px;
+    border-bottom: 1px solid #EBF0F8;
+    white-space: nowrap;
+  }
+  .data-table tfoot td {
+    padding: 10px 14px;
+    font-weight: 800;
+    background: var(--gold-pale);
+    border-top: 2px solid var(--gold);
+    font-size: 13.5px;
+    white-space: nowrap;
+  }
+  .status-badge {
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .status-active { background: #D5F5E3; color: #1A7A4A; }
+  .status-warning { background: #FEF9E7; color: #B7770D; }
+  .status-urgent { background: #FDECEA; color: #C0392B; }
+
+  /* ===== FORM ===== */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width:600px){ .form-grid{ grid-template-columns:1fr; } }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1/-1; }
+  .form-group label { font-size: 13px; font-weight: 600; color: var(--text-sub); }
+  .form-group label .req { color: var(--red); }
+  .form-group input, .form-group select, .form-group textarea {
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 13px;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 14px;
+    color: var(--text-main);
+    background: white;
+    outline: none;
+    transition: all 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: var(--navy);
+    box-shadow: 0 0 0 3px rgba(13,43,94,0.08);
+  }
+  .form-actions {
+    display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+
+  /* ===== CHART CANVAS ===== */
+  .chart-wrap { position: relative; height: 260px; }
+
+  /* ===== ALERT ===== */
+  .alert {
+    padding: 12px 18px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 14px;
+    animation: fadeIn 0.4s ease;
+  }
+  .alert-success { background: #D5F5E3; border-left: 4px solid var(--green); color: #1A5C36; }
+  .alert-error { background: #FDECEA; border-left: 4px solid var(--red); color: #8B1A13; }
+  .alert-info { background: #EAF2FF; border-left: 4px solid var(--navy); color: var(--navy-dark); }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ===== PAGINATION ===== */
+  .pagination { display:flex; gap:6px; justify-content:center; align-items:center; padding:16px 0 0; }
+  .page-btn {
+    padding: 5px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 5px;
+    background: white;
+    cursor: pointer;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px;
+    color: var(--text-main);
+    transition: all 0.15s;
+  }
+  .page-btn:hover, .page-btn.active {
+    background: var(--navy);
+    color: white;
+    border-color: var(--navy);
+  }
+  .page-info { font-size: 13px; color: var(--text-sub); }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(8,26,59,0.55);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+    width: 100%; max-width: 640px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp { from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .modal-header {
+    background: linear-gradient(90deg, var(--navy), var(--navy-mid));
+    color: white;
+    padding: 16px 22px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-radius: 12px 12px 0 0;
+  }
+  .modal-header h3 { font-size: 16px; font-weight: 700; }
+  .modal-close { background: none; border: none; color: white; font-size: 22px; cursor: pointer; line-height: 1; }
+  .modal-body { padding: 22px; }
+  .modal-footer {
+    padding: 16px 22px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end; gap: 10px;
+  }
+
+  /* ===== SECTION TITLE ===== */
+  .sec-title {
+    font-size: 17px; font-weight: 800;
+    color: var(--navy-dark);
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 16px;
+  }
+  .sec-title::after {
+    content: '';
+    flex: 1; height: 2px;
+    background: linear-gradient(90deg, var(--navy) 0%, transparent 100%);
+    border-radius: 2px;
+    margin-left: 8px;
+  }
+
+  /* ===== LOADING ===== */
+  .loading-bar {
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold), var(--teal), var(--gold));
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    border-radius: 2px;
+    margin-bottom: 12px;
+  }
+  @keyframes loading { 0%{background-position:0%} 100%{background-position:200%} }
+
+  /* ===== TOOLTIP ===== */
+  [title] { cursor: help; }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:#F0F4F8; }
+  ::-webkit-scrollbar-thumb { background:var(--navy); border-radius:3px; }
+
+  .gap-actions { display:flex; gap:8px; }
+  .icon-btn {
+    background: none; border: none; cursor: pointer;
+    padding: 4px 8px; border-radius: 4px;
+    font-size: 15px; transition: background 0.15s;
+  }
+  .icon-btn:hover { background: #EEF3FC; }
+  .icon-btn.del:hover { background: #FDECEA; }
+
+  /* Breadcrumb */
+  .breadcrumb { font-size: 13px; color: var(--text-sub); margin-bottom: 18px; display:flex; gap:6px; align-items:center; }
+  .breadcrumb a { color: var(--navy); text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+
+  /* ===== CPD COMPARE ===== */
+  .cpd-month-filter {
+    display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+    margin-bottom:18px;
+  }
+  .month-chip {
+    padding:5px 14px; border-radius:20px; border:1.5px solid var(--border);
+    background:white; cursor:pointer; font-size:13px; font-weight:600;
+    color:var(--text-sub); transition:all 0.15s; font-family:'Sarabun',sans-serif;
+  }
+  .month-chip:hover { border-color:var(--navy); color:var(--navy); }
+  .month-chip.active { background:var(--navy); color:white; border-color:var(--navy); }
+  .cpd-legend {
+    display:flex; gap:20px; flex-wrap:wrap;
+    font-size:13px; margin-bottom:14px;
+  }
+  .cpd-legend-item { display:flex; align-items:center; gap:6px; }
+  .cpd-dot { width:12px; height:12px; border-radius:3px; }
+  .variance-pos { color:var(--green); font-weight:700; }
+  .variance-neg { color:var(--red); font-weight:700; }
+  .variance-zero { color:var(--text-sub); }
+  .cpd-table th { cursor:default; }
+  .cpd-table td.num { text-align:right; }
+  .cpd-status-above { background:#D5F5E3; color:#1A7A4A; padding:2px 8px; border-radius:10px; font-size:12px; font-weight:700; }
+  .cpd-status-below { background:#FDECEA; color:#C0392B; padding:2px 8px; border-radius:10px; font-size:12px; font-weight:700; }
+  .cpd-status-on { background:#EAF2FF; color:#0D2B5E; padding:2px 8px; border-radius:10px; font-size:12px; font-weight:700; }
+
+  /* ===== IMPORT MODAL ===== */
+  .drop-zone {
+    border:2.5px dashed var(--border); border-radius:10px;
+    padding:36px 20px; text-align:center;
+    background:#F8FAFF; cursor:pointer; transition:all 0.2s;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color:var(--navy); background:#EEF3FC;
+  }
+  .drop-zone .dz-icon { font-size:40px; margin-bottom:10px; }
+  .drop-zone p { color:var(--text-sub); font-size:14px; }
+  .import-preview { margin-top:16px; }
+  .import-preview table { width:100%; font-size:12px; border-collapse:collapse; }
+  .import-preview th { background:var(--navy); color:white; padding:6px 10px; text-align:left; }
+  .import-preview td { padding:5px 10px; border-bottom:1px solid #EEF0F8; }
+
+  /* ===== EDITABLE HEADER ===== */
+  .header-edit-btn {
+    background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3);
+    color:white; border-radius:5px; padding:3px 10px; font-size:12px;
+    cursor:pointer; margin-left:8px; font-family:'Sarabun',sans-serif;
+    transition:background 0.15s;
+  }
+  .header-edit-btn:hover { background:rgba(255,255,255,0.25); }
+  .header-title h1 { display:flex; align-items:center; gap:0; }
+
+  /* inline edit input */
+  .inline-edit-input {
+    background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.5);
+    color:white; border-radius:5px; padding:3px 8px;
+    font-family:'Sarabun',sans-serif; font-size:17px; font-weight:700;
+    min-width:280px; outline:none;
+  }
+  .inline-edit-input::placeholder { color:rgba(255,255,255,0.5); }
+
+  /* ===== CHART LINE TALL ===== */
+  .chart-wrap-tall { position:relative; height:320px; }
+
+  /* ===== DAILY PAYMENT ===== */
+  .day-summary-grid {
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:12px; margin-bottom:20px;
+  }
+  .day-kpi {
+    background:white; border-radius:10px; padding:16px;
+    border:1px solid var(--border); box-shadow:var(--shadow);
+    position:relative; overflow:hidden;
+  }
+  .day-kpi::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; border-radius:4px 0 0 4px; }
+  .day-kpi.dk-blue::before { background:var(--navy); }
+  .day-kpi.dk-gold::before { background:var(--gold); }
+  .day-kpi.dk-green::before { background:var(--green); }
+  .day-kpi.dk-red::before { background:var(--red); }
+  .day-kpi.dk-teal::before { background:var(--teal); }
+  .day-kpi-label { font-size:11px; color:var(--text-sub); font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+  .day-kpi-value { font-size:20px; font-weight:800; color:var(--text-main); }
+  .day-kpi-sub { font-size:11px; color:var(--text-sub); margin-top:3px; }
+
+  /* big pct gauge on dashboard */
+  .pct-gauge-wrap {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:10px 0;
+  }
+  .pct-gauge-ring {
+    position:relative; width:140px; height:140px;
+  }
+  .pct-gauge-ring svg { width:140px; height:140px; transform:rotate(-90deg); }
+  .pct-gauge-ring .gauge-bg { fill:none; stroke:#E8EFF8; stroke-width:14; }
+  .pct-gauge-ring .gauge-fill { fill:none; stroke-width:14; stroke-linecap:round; transition:stroke-dashoffset 1s ease; }
+  .pct-gauge-center {
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+  }
+  .pct-gauge-pct { font-size:28px; font-weight:900; line-height:1; }
+  .pct-gauge-label { font-size:11px; color:var(--text-sub); margin-top:2px; }
+  .pct-gauge-bars { width:100%; margin-top:10px; }
+  .gauge-bar-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:12px; }
+  .gauge-bar-label { width:90px; color:var(--text-sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .gauge-bar-track { flex:1; height:8px; background:#E8EFF8; border-radius:4px; overflow:hidden; }
+  .gauge-bar-fill { height:100%; border-radius:4px; transition:width .8s ease; }
+  .gauge-bar-val { width:44px; text-align:right; font-weight:700; font-size:11px; color:var(--text-main); }
+
+  /* daily table */
+  .daily-cat-badge {
+    padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700;
+    white-space:nowrap;
+  }
+  .cat-travel { background:#EAF2FF; color:#0D2B5E; }
+  .cat-supply { background:#FEF9E7; color:#B7770D; }
+  .cat-service { background:#F0FDF4; color:#1A7A4A; }
+  .cat-other { background:#F5F0FF; color:#6D2BB5; }
+  .cat-meeting { background:#FFF1E6; color:#D35400; }
+</style>
+</head>
+<body>
+
+<!-- TOP HEADER -->
+<div class="top-header">
+  <div class="header-emblem">
+    <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Circular gold background -->
+      <circle cx="28" cy="28" r="28" fill="#C9A227"/>
+      <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+      <!-- Document / ledger base -->
+      <rect x="14" y="13" width="22" height="28" rx="2.5" fill="white" opacity="0.95"/>
+      <rect x="14" y="13" width="22" height="28" rx="2.5" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
+      <!-- Document fold corner -->
+      <path d="M30 13 L36 19 L30 19 Z" fill="#C9A227" opacity="0.7"/>
+      <path d="M30 13 L36 19 L30 19 Z" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+      <!-- Lines on document (text lines) -->
+      <rect x="18" y="22" width="10" height="1.8" rx="0.9" fill="#0D2B5E" opacity="0.55"/>
+      <rect x="18" y="26" width="13" height="1.8" rx="0.9" fill="#0D2B5E" opacity="0.4"/>
+      <rect x="18" y="30" width="11" height="1.8" rx="0.9" fill="#0D2B5E" opacity="0.4"/>
+      <!-- Baht symbol circle overlapping -->
+      <circle cx="37" cy="38" r="8.5" fill="#0D2B5E"/>
+      <circle cx="37" cy="38" r="8.5" fill="none" stroke="white" stroke-width="1.2"/>
+      <!-- ฿ Baht sign in white -->
+      <text x="37" y="42.5" text-anchor="middle" font-family="Sarabun, Arial" font-weight="900"
+            font-size="11" fill="white">฿</text>
+      <!-- Arrow up-right (disbursement flow) -->
+      <path d="M20 37 L24 33 L28 37" stroke="#0D2B5E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+      <line x1="24" y1="33" x2="24" y2="39" stroke="#0D2B5E" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+    </svg>
+  </div>
+  <div class="header-title">
+    <h1 id="header-org-display">ระบบคุมการเบิกจ่ายงบประมาณ
+      <button class="header-edit-btn" onclick="openOrgEdit()" title="แก้ไขชื่อหน่วยงาน/ปีงบประมาณ">✏️ แก้ไข</button>
+    </h1>
+    <p id="header-sub-display">สำนักงานส่งเสริมสหกรณ์กรุงเทพมหานคร พื้นที่ 1 &nbsp;|&nbsp; ปีงบประมาณ พ.ศ. <span id="header-year-display">2569</span></p>
+  </div>
+  <div class="header-meta">
+    <button class="btn" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);font-size:13px;padding:6px 14px;" onclick="openImportModal()">📥 นำเข้าข้อมูล</button>
+    <div class="badge"><span class="live-dot"></span>Real-time</div>
+    <div id="clock">--:--:--</div>
+  </div>
+</div>
+
+<!-- NAV TABS -->
+<div class="nav-bar">
+  <div class="nav-tab active" onclick="showPage('dashboard',this)">📊 ภาพรวม Dashboard</div>
+  <div class="nav-tab" onclick="showPage('daily',this)">💸 รายจ่ายรายวัน</div>
+  <div class="nav-tab" onclick="showPage('cpd',this)">🎯 ตัวชี้วัดกรม (CPD)</div>
+  <div class="nav-tab" onclick="showPage('detail',this)">📋 รายละเอียดงบ</div>
+  <div class="nav-tab" onclick="showPage('entry',this)">✏️ กรอกข้อมูล</div>
+  <div class="nav-tab" onclick="showPage('report',this)">📑 รายงาน</div>
+  <div class="nav-tab" onclick="showPage('settings',this)">⚙️ ตั้งค่า</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+  <div id="alert-area"></div>
+
+  <!-- ===== PAGE: DASHBOARD ===== -->
+  <div class="page active" id="page-dashboard">
+    <div class="breadcrumb">🏠 หน้าหลัก › ภาพรวม Dashboard</div>
+
+    <!-- KPI Cards Row -->
+    <div class="kpi-grid" id="kpi-grid" style="margin-bottom:20px;">
+      <div class="kpi-card blue">
+        <div class="kpi-label">งบประมาณที่ได้รับทั้งหมด</div>
+        <div class="kpi-value" id="kpi-total">-</div>
+        <div class="kpi-sub" id="kpi-total-sub">ปีงบประมาณ 2569</div>
+        <div class="kpi-icon">💰</div>
+      </div>
+      <div class="kpi-card gold">
+        <div class="kpi-label">เบิกจ่ายแล้ว</div>
+        <div class="kpi-value" id="kpi-disbursed">-</div>
+        <div class="kpi-sub" id="kpi-disbursed-sub">-</div>
+        <div class="kpi-icon">📤</div>
+        <div class="progress-wrap">
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="kpi-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">งบคงเหลือ</div>
+        <div class="kpi-value" id="kpi-remain">-</div>
+        <div class="kpi-sub" id="kpi-remain-sub">พร้อมเบิกจ่าย</div>
+        <div class="kpi-icon">🏦</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">ยังไม่เบิกจ่าย</div>
+        <div class="kpi-value" id="kpi-notpaid">-</div>
+        <div class="kpi-sub" id="kpi-notpaid-sub">รายการ</div>
+        <div class="kpi-icon">⚠️</div>
+      </div>
+      <div class="kpi-card" style="background:linear-gradient(135deg,#0D2B5E,#1B7A8C);color:white;border:none;">
+        <div class="kpi-label" style="color:rgba(255,255,255,.7);">💸 รายจ่ายรายวัน (เดือนนี้)</div>
+        <div class="kpi-value" id="kpi-daily-month" style="color:white;">-</div>
+        <div class="kpi-sub" id="kpi-daily-count" style="color:rgba(255,255,255,.6);">0 รายการ</div>
+        <div class="kpi-icon" style="opacity:.15;">📅</div>
+      </div>
+    </div>
+
+    <!-- Big % Progress + Charts -->
+    <div style="display:grid;grid-template-columns:300px 1fr 1fr;gap:20px;margin-bottom:24px;">
+      <!-- Gauge card -->
+      <div class="card">
+        <div class="card-header"><span class="icon">🎯</span>% เบิกจ่ายภาพรวม</div>
+        <div class="card-body" style="padding:16px 12px;">
+          <div class="pct-gauge-wrap">
+            <div class="pct-gauge-ring">
+              <svg viewBox="0 0 140 140">
+                <circle class="gauge-bg" cx="70" cy="70" r="56"/>
+                <circle class="gauge-fill" id="gauge-circle" cx="70" cy="70" r="56"
+                  stroke="#C9A227"
+                  stroke-dasharray="351.86"
+                  stroke-dashoffset="351.86"/>
+              </svg>
+              <div class="pct-gauge-center">
+                <div class="pct-gauge-pct" id="gauge-pct-text" style="color:var(--navy)">0%</div>
+                <div class="pct-gauge-label">เบิกจ่ายแล้ว</div>
+              </div>
+            </div>
+            <div style="text-align:center;margin-top:8px;">
+              <div style="font-size:12px;color:var(--text-sub);">เป้าสะสม CPD ณ ปัจจุบัน</div>
+              <div id="gauge-cpd-target" style="font-size:18px;font-weight:800;color:var(--teal);">55.00%</div>
+              <div id="gauge-variance" style="font-size:13px;font-weight:700;margin-top:2px;">-</div>
+            </div>
+          </div>
+          <div class="pct-gauge-bars" id="gauge-bars"></div>
+        </div>
+      </div>
+
+      <!-- Donut chart -->
+      <div class="card">
+        <div class="card-header"><span class="icon">🍩</span>สัดส่วนตามประเภทงบ</div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="chartType"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Bar chart -->
+      <div class="card">
+        <div class="card-header"><span class="icon">📊</span>งบ vs เบิกจ่าย ตามแผนงาน</div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="chartPlan"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Table with inline % bar -->
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-header"><span class="icon">📋</span>สรุปผลการเบิกจ่ายแยกตามประเภทงบประมาณ</div>
+      <div class="card-body" style="padding:0">
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th style="width:50px">รหัส</th>
+              <th>ประเภทงบประมาณ</th>
+              <th class="right">งบประมาณ (บาท)</th>
+              <th class="right">เบิกจ่าย (บาท)</th>
+              <th class="right">คงเหลือ (บาท)</th>
+              <th style="width:180px">% เบิกจ่าย</th>
+              <th style="width:110px">สถานะ</th>
+            </tr>
+          </thead>
+          <tbody id="summary-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Plan summary with % bar -->
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-header"><span class="icon">🗂️</span>สรุปผลการเบิกจ่ายแยกตามแผนงาน</div>
+      <div class="card-body" style="padding:0">
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>แผนงาน</th>
+              <th class="right">งบประมาณ (บาท)</th>
+              <th class="right">เบิกจ่าย (บาท)</th>
+              <th class="right">คงเหลือ (บาท)</th>
+              <th style="width:180px">% เบิกจ่าย</th>
+              <th style="width:110px">สถานะ</th>
+            </tr>
+          </thead>
+          <tbody id="plan-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Daily summary on dashboard -->
+    <div class="card">
+      <div class="card-header"><span class="icon">💸</span>รายจ่ายรายวัน — 10 รายการล่าสุด
+        <button class="btn btn-outline" style="margin-left:auto;padding:4px 14px;font-size:12px;" onclick="showPage('daily',document.querySelector('.nav-tab:nth-child(2)'))">ดูทั้งหมด →</button>
+      </div>
+      <div class="card-body" style="padding:0">
+        <table class="data-table" style="min-width:auto">
+          <thead><tr>
+            <th>วันที่</th><th>รายการ</th><th>หมวดหมู่</th><th>หน่วยงาน</th>
+            <th class="right">จำนวนเงิน</th><th>สถานะ</th>
+          </tr></thead>
+          <tbody id="daily-dash-tbody"><tr><td colspan="6" style="text-align:center;padding:16px;color:var(--text-sub)">ยังไม่มีข้อมูลรายจ่ายรายวัน</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: DAILY PAYMENT ===== -->
+  <div class="page" id="page-daily">
+    <div class="breadcrumb">🏠 หน้าหลัก › 💸 รายจ่ายรายวัน (Daily_Payment)</div>
+
+    <!-- Daily KPI -->
+    <div class="day-summary-grid" id="daily-kpi-grid">
+      <div class="day-kpi dk-blue">
+        <div class="day-kpi-label">รายจ่ายวันนี้</div>
+        <div class="day-kpi-value" id="dk-today">฿0</div>
+        <div class="day-kpi-sub" id="dk-today-count">0 รายการ</div>
+      </div>
+      <div class="day-kpi dk-gold">
+        <div class="day-kpi-label">รายจ่ายเดือนนี้</div>
+        <div class="day-kpi-value" id="dk-month">฿0</div>
+        <div class="day-kpi-sub" id="dk-month-count">0 รายการ</div>
+      </div>
+      <div class="day-kpi dk-green">
+        <div class="day-kpi-label">รายจ่ายสะสมปีนี้</div>
+        <div class="day-kpi-value" id="dk-year">฿0</div>
+        <div class="day-kpi-sub" id="dk-year-count">0 รายการ</div>
+      </div>
+      <div class="day-kpi dk-teal">
+        <div class="day-kpi-label">หมวดหมู่สูงสุด</div>
+        <div class="day-kpi-value" id="dk-top-cat" style="font-size:14px;">-</div>
+        <div class="day-kpi-sub" id="dk-top-cat-amt">-</div>
+      </div>
+      <div class="day-kpi dk-red">
+        <div class="day-kpi-label">รายการรออนุมัติ</div>
+        <div class="day-kpi-value" id="dk-pending">0</div>
+        <div class="day-kpi-sub">รายการ</div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:20px;">
+      <!-- Daily bar chart -->
+      <div class="card">
+        <div class="card-header"><span class="icon">📊</span>รายจ่ายรายวัน 30 วันล่าสุด</div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="chartDaily"></canvas></div></div>
+      </div>
+      <!-- Category donut -->
+      <div class="card">
+        <div class="card-header"><span class="icon">🍩</span>สัดส่วนตามหมวดหมู่</div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="chartDailyCat"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- Filter + Add -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>🔍 ค้นหา</label>
+        <input type="text" id="daily-search" placeholder="รายการ / ชื่อผู้เบิก..." oninput="filterDailyTable()">
+      </div>
+      <div class="filter-group">
+        <label>📅 วันที่เริ่ม</label>
+        <input type="date" id="daily-from" onchange="filterDailyTable()">
+      </div>
+      <div class="filter-group">
+        <label>📅 วันที่สิ้นสุด</label>
+        <input type="date" id="daily-to" onchange="filterDailyTable()">
+      </div>
+      <div class="filter-group">
+        <label>🏷️ หมวดหมู่</label>
+        <select id="daily-cat-filter" onchange="filterDailyTable()">
+          <option value="">-- ทั้งหมด --</option>
+          <option>ค่าพาหนะ</option>
+          <option>ค่าวัสดุ</option>
+          <option>ค่าใช้สอย</option>
+          <option>ค่าประชุม</option>
+          <option>ค่าตอบแทน</option>
+          <option>อื่นๆ</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>✅ สถานะ</label>
+        <select id="daily-status-filter" onchange="filterDailyTable()">
+          <option value="">-- ทั้งหมด --</option>
+          <option>อนุมัติแล้ว</option>
+          <option>รออนุมัติ</option>
+          <option>ยกเลิก</option>
+        </select>
+      </div>
+      <button class="btn btn-outline" onclick="clearDailyFilters()">🔄 ล้าง</button>
+      <button class="btn btn-success" onclick="openAddDaily()">➕ เพิ่มรายจ่าย</button>
+      <button class="btn btn-primary" onclick="exportDailyCSV()">📥 Export</button>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="icon">💸</span>รายการรายจ่ายทั้งหมด
+        <span id="daily-record-count" style="margin-left:auto;font-size:13px;opacity:.8;"></span>
+      </div>
+      <div class="card-body" style="padding:0">
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr>
+              <th onclick="sortDaily('id')" style="width:50px">ที่ ↕</th>
+              <th onclick="sortDaily('date')">วันที่ ↕</th>
+              <th onclick="sortDaily('description')">รายการ / รายละเอียด ↕</th>
+              <th onclick="sortDaily('category')">หมวดหมู่ ↕</th>
+              <th onclick="sortDaily('budgettype')">ประเภทงบ ↕</th>
+              <th onclick="sortDaily('unit')">หน่วยงาน ↕</th>
+              <th onclick="sortDaily('requester')">ผู้เบิก ↕</th>
+              <th class="right" onclick="sortDaily('amount')">จำนวนเงิน ↕</th>
+              <th onclick="sortDaily('status')">สถานะ ↕</th>
+              <th style="width:80px">จัดการ</th>
+            </tr></thead>
+            <tbody id="daily-tbody"></tbody>
+            <tfoot id="daily-tfoot"></tfoot>
+          </table>
+        </div>
+        <div class="pagination" id="daily-pagination"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: CPD COMPARE ===== -->
+  <div class="page" id="page-cpd">
+    <div class="breadcrumb">🏠 หน้าหลัก › เปรียบเทียบตัวชี้วัดกรม (plan_cpd)</div>
+
+    <!-- CPD KPI row -->
+    <div class="kpi-grid" style="margin-bottom:20px;" id="cpd-kpi-grid">
+      <div class="kpi-card blue">
+        <div class="kpi-label">เป้าหมายสะสม (CPD)</div>
+        <div class="kpi-value" id="cpd-kpi-target">-</div>
+        <div class="kpi-sub" id="cpd-kpi-month-label">เดือน เม.ย.</div>
+        <div class="kpi-icon">🎯</div>
+      </div>
+      <div class="kpi-card gold">
+        <div class="kpi-label">เบิกจ่ายจริงสะสม</div>
+        <div class="kpi-value" id="cpd-kpi-actual">-</div>
+        <div class="kpi-sub">ร้อยละของงบทั้งหมด</div>
+        <div class="kpi-icon">📊</div>
+      </div>
+      <div class="kpi-card" id="cpd-kpi-var-card" style="--card-color:var(--green)">
+        <div class="kpi-label">ผลต่าง (Variance)</div>
+        <div class="kpi-value" id="cpd-kpi-variance">-</div>
+        <div class="kpi-sub" id="cpd-kpi-var-label">เทียบกับเป้า</div>
+        <div class="kpi-icon">📈</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">สถานะภาพรวม</div>
+        <div class="kpi-value" style="font-size:18px;" id="cpd-kpi-result">-</div>
+        <div class="kpi-sub" id="cpd-kpi-result-sub">-</div>
+        <div class="kpi-icon">✅</div>
+      </div>
+    </div>
+
+    <!-- Month selector + reload -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+      <div>
+        <div style="font-size:13px;color:var(--text-sub);font-weight:600;margin-bottom:8px;">📅 เลือกเดือนที่ต้องการดู</div>
+        <div class="cpd-month-filter" id="month-chips"></div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-outline" onclick="loadCPDFromSheet()">🔄 โหลดจาก Google Sheet</button>
+        <button class="btn btn-primary" onclick="exportCPDReport()">📥 Export รายงาน</button>
+      </div>
+    </div>
+
+    <!-- Chart: Line comparison -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><span class="icon">📈</span>กราฟเปรียบเทียบแผนเบิกจ่าย vs ผลการเบิกจ่ายจริง รายเดือน</div>
+      <div class="card-body">
+        <div class="cpd-legend">
+          <div class="cpd-legend-item"><div class="cpd-dot" style="background:#C9A227"></div>เป้าหมายสะสม (CPD กรม) %</div>
+          <div class="cpd-legend-item"><div class="cpd-dot" style="background:#0D2B5E"></div>เบิกจ่ายจริงสะสม %</div>
+          <div class="cpd-legend-item"><div class="cpd-dot" style="background:#1B7A8C;opacity:0.5"></div>เบิกจ่ายจริงรายเดือน %</div>
+        </div>
+        <div class="chart-wrap-tall"><canvas id="chartCPD"></canvas></div>
+      </div>
+    </div>
+
+    <!-- CPD Data Table -->
+    <div class="card">
+      <div class="card-header"><span class="icon">📋</span>ตารางเปรียบเทียบรายเดือน
+        <span id="cpd-sheet-status" style="margin-left:auto;font-size:12px;opacity:0.8;"></span>
+      </div>
+      <div class="card-body" style="padding:0">
+        <div id="cpd-loading" class="loading-bar" style="margin:0;display:none;border-radius:0;"></div>
+        <div class="data-table-wrap">
+          <table class="data-table cpd-table">
+            <thead>
+              <tr>
+                <th>เดือน</th>
+                <th class="right">เป้าหมายรายเดือน (CPD) %</th>
+                <th class="right">เป้าหมายสะสม %</th>
+                <th class="right">เบิกจ่ายรายเดือน %</th>
+                <th class="right">เบิกจ่ายสะสม %</th>
+                <th class="right">ผลต่างสะสม</th>
+                <th style="width:130px">สถานะ</th>
+                <th style="width:80px">หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody id="cpd-tbody"></tbody>
+            <tfoot id="cpd-tfoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: DETAIL ===== -->
+  <div class="page" id="page-detail">
+    <div class="breadcrumb">🏠 หน้าหลัก › รายละเอียดงบประมาณ</div>
+
+    <!-- Filter -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>🔍 ค้นหารายการ</label>
+        <input type="text" id="search-input" placeholder="พิมพ์ชื่อรายการ..." oninput="filterTable()">
+      </div>
+      <div class="filter-group">
+        <label>📂 ประเภทงบประมาณ</label>
+        <select id="filter-type" onchange="filterTable()">
+          <option value="">-- ทั้งหมด --</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>📌 แผนงาน</label>
+        <select id="filter-plan" onchange="filterTable()">
+          <option value="">-- ทั้งหมด --</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>📈 สถานะการเบิก</label>
+        <select id="filter-status" onchange="filterTable()">
+          <option value="">-- ทั้งหมด --</option>
+          <option>เบิกจ่ายแล้ว</option>
+          <option>เบิกจ่ายบางส่วน</option>
+          <option>ยังไม่เบิกจ่าย</option>
+        </select>
+      </div>
+      <button class="btn btn-outline" onclick="clearFilters()">🔄 ล้างตัวกรอง</button>
+      <button class="btn btn-primary" onclick="exportCSV()">📥 ส่งออก CSV</button>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="icon">📋</span>รายการงบประมาณทั้งหมด
+        <span id="record-count" style="margin-left:auto; font-size:13px; opacity:0.8;"></span>
+      </div>
+      <div class="card-body" style="padding:0">
+        <div class="data-table-wrap">
+          <table class="data-table" id="main-table">
+            <thead>
+              <tr>
+                <th style="width:50px" onclick="sortTable('id')">ที่ ↕</th>
+                <th onclick="sortTable('activity')">รายการ / กิจกรรม ↕</th>
+                <th onclick="sortTable('plan')">แผนงาน ↕</th>
+                <th onclick="sortTable('type')">ประเภทงบ ↕</th>
+                <th class="right" onclick="sortTable('budget')">งบประมาณ ↕</th>
+                <th class="right" onclick="sortTable('disbursed')">เบิกจ่าย ↕</th>
+                <th class="right" onclick="sortTable('remain')">คงเหลือ ↕</th>
+                <th class="right" onclick="sortTable('pct')">ร้อยละ ↕</th>
+                <th>สถานะ</th>
+                <th style="width:90px">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="detail-tbody"></tbody>
+            <tfoot id="detail-tfoot"></tfoot>
+          </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: ENTRY ===== -->
+  <div class="page" id="page-entry">
+    <div class="breadcrumb">🏠 หน้าหลัก › กรอก/แก้ไขข้อมูล</div>
+
+    <div class="grid-2">
+      <!-- Form -->
+      <div class="card">
+        <div class="card-header"><span class="icon">✏️</span><span id="form-mode-label">เพิ่มรายการใหม่</span></div>
+        <div class="card-body">
+          <div id="entry-alert"></div>
+          <div class="form-grid">
+            <input type="hidden" id="edit-id">
+            <div class="form-group">
+              <label>วันที่ทำรายการ <span class="req">*</span></label>
+              <input type="date" id="f-date" required>
+            </div>
+            <div class="form-group">
+              <label>ปีงบประมาณ <span class="req">*</span></label>
+              <select id="f-year">
+                <option>2569</option>
+                <option>2568</option>
+                <option>2567</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>ประเภทงบประมาณ <span class="req">*</span></label>
+              <select id="f-budgettype">
+                <option value="">-- เลือกประเภท --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>แผนงาน (Plan_Type)</label>
+              <select id="f-plantype">
+                <option value="">-- เลือกแผนงาน --</option>
+              </select>
+            </div>
+            <div class="form-group full">
+              <label>กิจกรรม / รายละเอียด <span class="req">*</span></label>
+              <input type="text" id="f-activity" placeholder="ระบุชื่อกิจกรรมหรือรายการ">
+            </div>
+            <div class="form-group">
+              <label>หน่วยงานรับผิดชอบ</label>
+              <select id="f-unit">
+                <option>ฝ่ายบริหารทั่วไป</option>
+                <option>กลุ่มจัดตั้งและส่งเสริมสหกรณ์</option>
+                <option>กลุ่มส่งเสริมพัฒนาการบริหาร</option>
+                <option>กลุ่มตรวจการสหกรณ์</option>
+                <option>กลุ่มส่งเสริมสหกรณ์ 1</option>
+                <option>กลุ่มส่งเสริมสหกรณ์ 2</option>
+                <option>กลุ่มส่งเสริมสหกรณ์ 3</option>
+                <option>กลุ่มส่งเสริมสหกรณ์ 4</option>
+                <option>กลุ่มส่งเสริมสหกรณ์ 5</option>
+                <option>กลุ่มส่งเสริมสหกรณ์ 6</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>สถานะ</label>
+              <select id="f-status">
+                <option>เบิกจ่ายแล้ว</option>
+                <option>เบิกจ่ายบางส่วน</option>
+                <option>ยังไม่เบิกจ่าย</option>
+                <option>อยู่ระหว่างดำเนินการ</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>งบประมาณที่ได้รับ (บาท) <span class="req">*</span></label>
+              <input type="number" id="f-budget" placeholder="0.00" min="0" step="0.01" oninput="calcRemain()">
+            </div>
+            <div class="form-group">
+              <label>งบที่ได้รับโอนแล้ว (บาท)</label>
+              <input type="number" id="f-transfer" placeholder="0.00" min="0" step="0.01">
+            </div>
+            <div class="form-group">
+              <label>เบิกจ่าย (บาท) <span class="req">*</span></label>
+              <input type="number" id="f-disbursed" placeholder="0.00" min="0" step="0.01" oninput="calcRemain()">
+            </div>
+            <div class="form-group">
+              <label>คงเหลือ (บาท)</label>
+              <input type="number" id="f-remain" placeholder="คำนวณอัตโนมัติ" readonly style="background:#F0F4F8; color:var(--teal);">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-outline" onclick="resetForm()">🔄 ล้างแบบฟอร์ม</button>
+            <button class="btn btn-success" onclick="saveToSheet()">💾 บันทึกข้อมูล</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent entries -->
+      <div class="card">
+        <div class="card-header"><span class="icon">🕐</span>รายการล่าสุดจาก Google Sheet</div>
+        <div class="card-body" style="padding:0">
+          <div id="gs-loading" class="loading-bar" style="margin:16px 16px 0;"></div>
+          <div id="gs-config-warning" class="alert alert-info" style="margin:12px;display:none;">
+            ⚙️ กรุณาตั้งค่า <strong>Google Sheet API Key</strong> และ <strong>Spreadsheet ID</strong> ในหน้าตั้งค่าก่อน
+          </div>
+          <table class="data-table" id="gs-table" style="min-width:auto">
+            <thead>
+              <tr>
+                <th>รายการ</th>
+                <th class="right">งบประมาณ</th>
+                <th class="right">เบิกจ่าย</th>
+                <th>สถานะ</th>
+              </tr>
+            </thead>
+            <tbody id="gs-tbody">
+              <tr><td colspan="4" style="text-align:center;padding:16px;color:var(--text-sub)">กำลังเชื่อมต่อ Google Sheet...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: REPORT ===== -->
+  <div class="page" id="page-report">
+    <div class="breadcrumb">🏠 หน้าหลัก › สรุปรายงาน</div>
+
+    <div class="grid-3" style="margin-bottom:24px;">
+      <div class="card" style="cursor:pointer" onclick="generateReport('budget-type')">
+        <div class="card-body" style="text-align:center;padding:28px;">
+          <div style="font-size:40px;margin-bottom:10px;">📊</div>
+          <div style="font-weight:700;font-size:15px;color:var(--navy)">รายงานตามประเภทงบประมาณ</div>
+          <div style="font-size:13px;color:var(--text-sub);margin-top:6px;">สรุปงบบุคลากร งบดำเนินงาน ฯลฯ</div>
+        </div>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="generateReport('plan')">
+        <div class="card-body" style="text-align:center;padding:28px;">
+          <div style="font-size:40px;margin-bottom:10px;">🗂️</div>
+          <div style="font-weight:700;font-size:15px;color:var(--navy)">รายงานตามแผนงาน</div>
+          <div style="font-size:13px;color:var(--text-sub);margin-top:6px;">แยกตามแผนงานหลักและกิจกรรม</div>
+        </div>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="generateReport('unit')">
+        <div class="card-body" style="text-align:center;padding:28px;">
+          <div style="font-size:40px;margin-bottom:10px;">🏢</div>
+          <div style="font-weight:700;font-size:15px;color:var(--navy)">รายงานตามหน่วยงาน</div>
+          <div style="font-size:13px;color:var(--text-sub);margin-top:6px;">แยกตามกลุ่มที่รับผิดชอบ</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="report-output" style="display:none;">
+      <div class="card-header"><span class="icon">📑</span><span id="report-title">รายงาน</span>
+        <button class="btn btn-gold" style="margin-left:auto;padding:5px 14px;font-size:13px;" onclick="printReport()">🖨️ พิมพ์</button>
+      </div>
+      <div class="card-body" id="report-body"></div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: SETTINGS ===== -->
+  <div class="page" id="page-settings">
+    <div class="breadcrumb">🏠 หน้าหลัก › ตั้งค่า</div>
+    <div class="card" style="max-width:640px">
+      <div class="card-header"><span class="icon">⚙️</span>ตั้งค่าการเชื่อมต่อ Google Sheets</div>
+      <div class="card-body">
+        <div id="settings-alert"></div>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Google Spreadsheet ID</label>
+            <input type="text" id="cfg-sheet-id" placeholder="1AWkrO5G7gKjZthTKN5sipnBuRF9eDW5XuKQUT_w7mPM">
+            <small style="color:var(--text-sub);font-size:12px;">ดูได้จาก URL ของ Google Sheet ที่คุณแชร์มา</small>
+          </div>
+          <div class="form-group full">
+            <label>Google Sheets API Key</label>
+            <input type="password" id="cfg-api-key" placeholder="AIza...">
+            <small style="color:var(--text-sub);font-size:12px;">สร้างได้ที่ <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:var(--navy)">Google Cloud Console</a> → APIs & Services → Credentials</small>
+          </div>
+          <div class="form-group">
+            <label>ชื่อ Sheet (Tab สำหรับอ่านข้อมูล)</label>
+            <input type="text" id="cfg-sheet-read" value="Data_Entry">
+          </div>
+          <div class="form-group">
+            <label>ชื่อ Sheet (Tab สำหรับเขียนข้อมูล)</label>
+            <input type="text" id="cfg-sheet-write" value="Data_Entry">
+          </div>
+          <div class="form-group">
+            <label>ชื่อ Sheet ตัวชี้วัดกรม (CPD)</label>
+            <input type="text" id="cfg-sheet-cpd" value="plan_cpd">
+          </div>
+          <div class="form-group">
+            <label>ชื่อ Sheet ประเภทงบ</label>
+            <input type="text" id="cfg-sheet-budgettype" value="Budget_Type">
+          </div>
+          <div class="form-group">
+            <label>ชื่อ Sheet แผนงาน</label>
+            <input type="text" id="cfg-sheet-plantype" value="Plan_Type">
+          </div>
+          <div class="form-group">
+            <label>ชื่อ Sheet รายจ่ายรายวัน</label>
+            <input type="text" id="cfg-sheet-daily" value="Daily_Payment">
+          </div>
+          <div class="form-group">
+            <label>ชื่อหน่วยงาน</label>
+            <input type="text" id="cfg-org-name" value="สำนักงานส่งเสริมสหกรณ์กรุงเทพมหานคร พื้นที่ 1">
+          </div>
+          <div class="form-group">
+            <label>ปีงบประมาณปัจจุบัน</label>
+            <input type="text" id="cfg-year" value="2569">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-outline" onclick="resetSheetDefaults()" title="รีเซ็ตชื่อ Sheet กลับเป็นค่าเริ่มต้น">↩️ รีเซ็ตชื่อ Sheet</button>
+          <button class="btn btn-outline" onclick="testConnection()">🔗 ทดสอบการเชื่อมต่อ</button>
+          <button class="btn btn-outline" style="border-color:var(--teal);color:var(--teal);" onclick="loadMasterLists(false)">🔄 โหลด Budget_Type / Plan_Type</button>
+          <button class="btn btn-primary" onclick="saveSettings()">💾 บันทึกการตั้งค่า</button>
+        </div>
+        <div style="margin-top:10px;padding:10px 14px;background:#EAF7FF;border-radius:7px;font-size:12px;color:var(--teal);border:1px solid #B3E5FF;">
+          <strong>💡 หมายเหตุ:</strong> ชื่อ Sheet ต้องตรงกับแท็บใน Google Sheet <strong>ทุกตัวอักษร</strong> (รวมถึงขีดล่าง _) &nbsp;|&nbsp;
+          หากเคยบันทึกชื่อผิด กด <strong>↩️ รีเซ็ตชื่อ Sheet</strong> แล้วบันทึกใหม่
+        </div>
+        <div style="margin-top:24px;padding:16px;background:#F0F4F8;border-radius:8px;font-size:13px;color:var(--text-sub);line-height:1.8;">
+          <strong>📌 วิธีตั้งค่า Google Sheets API:</strong><br>
+          1. เปิด <a href="https://console.cloud.google.com" target="_blank" style="color:var(--navy)">Google Cloud Console</a><br>
+          2. เปิดใช้งาน "Google Sheets API"<br>
+          3. สร้าง API Key ใน Credentials<br>
+          4. ตั้งค่า Spreadsheet เป็น "Anyone with the link can view" หรือใช้ Service Account<br>
+          5. วาง API Key และ Spreadsheet ID ด้านบน แล้วกดบันทึก
+        </div>
+
+        <!-- Master list preview -->
+        <div style="margin-top:16px;" id="master-list-preview">
+          <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:10px;">📂 รายการ Master List ที่โหลดอยู่</div>
+          <div class="grid-2" style="gap:12px;margin-bottom:0;">
+            <div style="background:#EAF2FF;border-radius:8px;padding:14px;">
+              <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px;">Budget_Type (<span id="bt-count">0</span> รายการ)</div>
+              <div id="bt-list" style="font-size:12px;color:var(--text-sub);line-height:1.8;"></div>
+            </div>
+            <div style="background:#F0FDF4;border-radius:8px;padding:14px;">
+              <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px;">Plan_Type (<span id="pt-count">0</span> รายการ)</div>
+              <div id="pt-list" style="font-size:12px;color:var(--text-sub);line-height:1.8;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: IMPORT DATA -->
+<div class="modal-overlay" id="modal-import">
+  <div class="modal" style="max-width:720px;">
+    <div class="modal-header">
+      <h3>📥 นำเข้าข้อมูลงบประมาณ</h3>
+      <button class="modal-close" onclick="closeImport()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label>ปีงบประมาณที่นำเข้า</label>
+          <select id="import-year">
+            <option>2569</option><option>2568</option><option>2567</option><option>2566</option><option>2565</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>วิธีการนำเข้า</label>
+          <select id="import-mode" onchange="toggleImportMode()">
+            <option value="csv">อัปโหลดไฟล์ CSV</option>
+            <option value="sheet">ดึงจาก Google Sheet</option>
+            <option value="manual">วางข้อมูล (Paste)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- CSV Upload -->
+      <div id="import-csv-area">
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+          ondragover="event.preventDefault();this.classList.add('drag-over')"
+          ondragleave="this.classList.remove('drag-over')"
+          ondrop="handleFileDrop(event)">
+          <div class="dz-icon">📂</div>
+          <p><strong>คลิกเพื่อเลือกไฟล์</strong> หรือลากมาวางที่นี่</p>
+          <p style="font-size:12px;margin-top:6px;">รองรับ <strong>.xlsx</strong> (Excel) และ <strong>.csv</strong> (TIS-620 / UTF-8)</p>
+          <p style="font-size:12px;margin-top:4px;color:var(--teal);">💡 ใช้ไฟล์ Data_Entry_Template.xlsx ที่ดาวน์โหลดมา</p>
+        </div>
+        <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFileSelect(event)">
+        <div id="file-name-display" style="display:none;margin-top:10px;padding:8px 14px;background:#EEF3FC;border-radius:6px;font-size:13px;color:var(--navy);"></div>
+        <div id="import-preview" class="import-preview" style="display:none;"></div>
+      </div>
+
+      <!-- Sheet pull -->
+      <div id="import-sheet-area" style="display:none;">
+        <div class="alert alert-info">📌 ระบบจะดึงข้อมูลจาก Google Sheet แท็บ <strong id="import-sheet-name-label">Data_Entry</strong> โดยอัตโนมัติ</div>
+        <button class="btn btn-primary" style="margin-top:8px;" onclick="pullFromSheet()">🔄 ดึงข้อมูลจาก Sheet</button>
+        <div id="pull-preview" class="import-preview" style="margin-top:12px;display:none;"></div>
+      </div>
+
+      <!-- Paste -->
+      <div id="import-paste-area" style="display:none;">
+        <div class="form-group">
+          <label>วางข้อมูลจาก Excel / Google Sheets (Tab-separated)</label>
+          <textarea id="paste-input" rows="8" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:10px;font-family:monospace;font-size:12px;resize:vertical;" placeholder="วางข้อมูลที่นี่...&#10;รูปแบบ: ที่&#9;ประเภทแผนงาน&#9;งบประมาณ&#9;เบิกจ่าย&#9;คงเหลือ&#9;ร้อยละ"></textarea>
+        </div>
+        <button class="btn btn-outline" onclick="parsePaste()">🔍 แสดงตัวอย่าง</button>
+        <div id="paste-preview" class="import-preview" style="margin-top:12px;display:none;"></div>
+      </div>
+
+      <div id="import-alert" style="margin-top:12px;"></div>
+    </div>
+    <div class="modal-footer">
+      <div style="font-size:13px;color:var(--text-sub);margin-right:auto;" id="import-count-label"></div>
+      <button class="btn btn-outline" onclick="closeImport()">ยกเลิก</button>
+      <button class="btn btn-success" id="btn-confirm-import" onclick="confirmImport()" disabled>✅ นำเข้าข้อมูล</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDIT ORG -->
+<div class="modal-overlay" id="modal-org">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <h3>🏢 แก้ไขชื่อหน่วยงานและปีงบประมาณ</h3>
+      <button class="modal-close" onclick="closeOrgEdit()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:16px;">
+        <label style="font-size:13px;font-weight:600;color:var(--text-sub);">ชื่อหน่วยงาน</label>
+        <input type="text" id="org-name-input" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:10px;font-family:'Sarabun',sans-serif;font-size:15px;outline:none;margin-top:6px;" placeholder="ชื่อหน่วยงาน...">
+      </div>
+      <div class="form-group">
+        <label style="font-size:13px;font-weight:600;color:var(--text-sub);">ปีงบประมาณ พ.ศ.</label>
+        <input type="text" id="org-year-input" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:10px;font-family:'Sarabun',sans-serif;font-size:15px;outline:none;margin-top:6px;" placeholder="เช่น 2569">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeOrgEdit()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveOrgEdit()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL: ADD/EDIT DAILY PAYMENT -->
+<div class="modal-overlay" id="modal-daily">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header">
+      <h3 id="daily-modal-title">➕ เพิ่มรายจ่ายรายวัน</h3>
+      <button class="modal-close" onclick="closeDailyModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="daily-form-alert"></div>
+      <div class="form-grid">
+        <input type="hidden" id="dp-edit-id">
+        <div class="form-group">
+          <label>วันที่ <span class="req">*</span></label>
+          <input type="date" id="dp-date">
+        </div>
+        <div class="form-group">
+          <label>หมวดหมู่ <span class="req">*</span></label>
+          <select id="dp-category">
+            <option value="">-- เลือกหมวดหมู่ --</option>
+            <option>ค่าพาหนะ</option><option>ค่าวัสดุ</option>
+            <option>ค่าใช้สอย</option><option>ค่าประชุม</option>
+            <option>ค่าตอบแทน</option><option>อื่นๆ</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>รายการ / รายละเอียด <span class="req">*</span></label>
+          <input type="text" id="dp-description" placeholder="อธิบายรายจ่าย...">
+        </div>
+        <div class="form-group">
+          <label>ประเภทงบประมาณ</label>
+          <select id="dp-budgettype"><option value="">-- เลือก --</option></select>
+        </div>
+        <div class="form-group">
+          <label>แผนงาน</label>
+          <select id="dp-plan"><option value="">-- เลือก --</option></select>
+        </div>
+        <div class="form-group">
+          <label>หน่วยงาน</label>
+          <select id="dp-unit"><option value="">-- เลือก --</option></select>
+        </div>
+        <div class="form-group">
+          <label>ผู้เบิก</label>
+          <input type="text" id="dp-requester" placeholder="ชื่อ-สกุล ผู้เบิก">
+        </div>
+        <div class="form-group">
+          <label>จำนวนเงิน (บาท) <span class="req">*</span></label>
+          <input type="number" id="dp-amount" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>เลขที่ใบสำคัญ / อ้างอิง</label>
+          <input type="text" id="dp-ref" placeholder="เช่น ใบเสร็จ 001/2569">
+        </div>
+        <div class="form-group">
+          <label>สถานะ</label>
+          <select id="dp-status">
+            <option>อนุมัติแล้ว</option>
+            <option>รออนุมัติ</option>
+            <option>ยกเลิก</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>หมายเหตุ</label>
+          <input type="text" id="dp-note" placeholder="หมายเหตุเพิ่มเติม">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeDailyModal()">ยกเลิก</button>
+      <button class="btn btn-success" onclick="saveDailyRecord()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>✏️ แก้ไขรายการงบประมาณ</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>รายการ / กิจกรรม</label>
+          <input type="text" id="m-activity">
+        </div>
+        <div class="form-group">
+          <label>งบประมาณที่ได้รับ (บาท)</label>
+          <input type="number" id="m-budget" oninput="calcRemainModal()">
+        </div>
+        <div class="form-group">
+          <label>เบิกจ่าย (บาท)</label>
+          <input type="number" id="m-disbursed" oninput="calcRemainModal()">
+        </div>
+        <div class="form-group">
+          <label>คงเหลือ (บาท)</label>
+          <input type="number" id="m-remain" readonly style="background:#F0F4F8;color:var(--teal)">
+        </div>
+        <div class="form-group">
+          <label>สถานะ</label>
+          <select id="m-status">
+            <option>เบิกจ่ายแล้ว</option>
+            <option>เบิกจ่ายบางส่วน</option>
+            <option>ยังไม่เบิกจ่าย</option>
+            <option>อยู่ระหว่างดำเนินการ</option>
+          </select>
+        </div>
+        <input type="hidden" id="m-rowIndex">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-success" onclick="saveEdit()">💾 บันทึกการแก้ไข</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const SHEET_ID = '1AWkrO5G7gKjZthTKN5sipnBuRF9eDW5XuKQUT_w7mPM';
+
+let config = {
+  sheetId: SHEET_ID,
+  apiKey: '',
+  sheetRead: 'Data_Entry',
+  sheetWrite: 'Data_Entry',
+  sheetCpd: 'plan_cpd',
+  sheetBudgetType: 'Budget_Type',
+  sheetPlanType: 'Plan_Type',
+  sheetDaily: 'Daily_Payment',
+  orgName: 'สำนักงานส่งเสริมสหกรณ์กรุงเทพมหานคร พื้นที่ 1',
+  year: '2569'
+};
+
+// Master lookup lists (loaded from Sheet or fallback)
+let masterBudgetTypes = [
+  {id:'b01', name:'งบบุคลากร'},
+  {id:'b02', name:'งบดำเนินงาน'},
+  {id:'b03', name:'งบลงทุน'},
+  {id:'b04', name:'เงินอุดหนุน'},
+  {id:'b05', name:'งบรายจ่ายอื่น'},
+];
+let masterPlanTypes = [
+  {id:'p101', name:'แผนงานบุคลากรภาครัฐ'},
+  {id:'p102', name:'แผนงานพื้นฐานด้านการสร้างความสามารถในการแข่งขัน'},
+  {id:'p103', name:'แผนงานยุทธศาสตร์เสริมสร้างพลังทางสังคม'},
+  {id:'p104', name:'แผนงานยุทธศาสตร์พัฒนาและส่งเสริมเศรษฐกิจฐานราก'},
+  {id:'p105', name:'แผนงานยุทธศาสตร์การเกษตรสร้างมูลค่า'},
+];
+
+try {
+  const saved = JSON.parse(localStorage.getItem('budget_config') || '{}');
+  config = {...config, ...saved};
+  // Sanitize sheet names — replace spaces with underscores from old saved configs
+  const sheetFields = ['sheetRead','sheetWrite','sheetCpd','sheetBudgetType','sheetPlanType','sheetDaily'];
+  sheetFields.forEach(k => {
+    if(config[k]) config[k] = config[k].trim().replace(/\s+/g, '_');
+  });
+
+  if(config.sheetId) document.getElementById('cfg-sheet-id').value = config.sheetId;
+  if(config.apiKey) document.getElementById('cfg-api-key').value = config.apiKey;
+  if(config.sheetRead) document.getElementById('cfg-sheet-read').value = config.sheetRead;
+  if(config.sheetWrite) document.getElementById('cfg-sheet-write').value = config.sheetWrite;
+  if(config.sheetCpd) document.getElementById('cfg-sheet-cpd').value = config.sheetCpd;
+  if(config.sheetBudgetType) document.getElementById('cfg-sheet-budgettype').value = config.sheetBudgetType;
+  if(config.sheetPlanType) document.getElementById('cfg-sheet-plantype').value = config.sheetPlanType;
+  if(config.sheetDaily) { const el=document.getElementById('cfg-sheet-daily'); if(el) el.value=config.sheetDaily; }
+  if(config.orgName) document.getElementById('cfg-org-name').value = config.orgName;
+  if(config.year) document.getElementById('cfg-year').value = config.year;
+  // Load saved master lists
+  if(saved.masterBudgetTypes) masterBudgetTypes = saved.masterBudgetTypes;
+  if(saved.masterPlanTypes) masterPlanTypes = saved.masterPlanTypes;
+} catch(e){}
+
+// ============================================================
+// POPULATE DROPDOWNS FROM MASTER LISTS
+// ============================================================
+function populateDropdowns() {
+  const selIds = ['f-budgettype','filter-type'];
+  selIds.forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const cur = el.value;
+    el.innerHTML = '<option value="">-- ทั้งหมด --</option>';
+    masterBudgetTypes.forEach(t => {
+      el.innerHTML += `<option value="${t.name}">${t.id ? '['+t.id+'] ' : ''}${t.name}</option>`;
+    });
+    el.value = cur;
+  });
+  // f-budgettype has different placeholder
+  const fbt = document.getElementById('f-budgettype');
+  if(fbt){ fbt.innerHTML = '<option value="">-- เลือกประเภท --</option>'+masterBudgetTypes.map(t=>`<option value="${t.name}">[${t.id}] ${t.name}</option>`).join(''); }
+
+  const planSelIds = ['f-plantype','filter-plan'];
+  planSelIds.forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const cur = el.value;
+    el.innerHTML = '<option value="">-- ทั้งหมด --</option>';
+    masterPlanTypes.forEach(t => {
+      el.innerHTML += `<option value="${t.name}">${t.id ? '['+t.id+'] ' : ''}${t.name}</option>`;
+    });
+    el.value = cur;
+  });
+  const fpt = document.getElementById('f-plantype');
+  if(fpt){ fpt.innerHTML = '<option value="">-- เลือกแผนงาน --</option>'+masterPlanTypes.map(t=>`<option value="${t.name}">[${t.id}] ${t.name}</option>`).join(''); }
+}
+
+// Load master data from Google Sheet Budget_Type and Plan_Type
+async function loadMasterLists(silent=false) {
+  if(!config.apiKey) { populateDropdowns(); return; }
+  try {
+    const [btRes, ptRes] = await Promise.all([
+      fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(config.sheetBudgetType||'Budget_Type')}!A1:B20?key=${config.apiKey}`),
+      fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(config.sheetPlanType||'Plan_Type')}!A1:B20?key=${config.apiKey}`)
+    ]);
+    const [btData, ptData] = await Promise.all([btRes.json(), ptRes.json()]);
+
+    if(!btData.error && btData.values) {
+      const rows = btData.values.slice(1).filter(r=>r[0]&&r[1]);
+      if(rows.length) masterBudgetTypes = rows.map(r=>({id:r[0].trim(), name:r[1].trim()}));
+    }
+    if(!ptData.error && ptData.values) {
+      const rows = ptData.values.slice(1).filter(r=>r[0]&&r[1]);
+      if(rows.length) masterPlanTypes = rows.map(r=>({id:r[0].trim(), name:r[1].trim()}));
+    }
+    // Cache to localStorage
+    try {
+      const saved = JSON.parse(localStorage.getItem('budget_config')||'{}');
+      saved.masterBudgetTypes = masterBudgetTypes;
+      saved.masterPlanTypes = masterPlanTypes;
+      localStorage.setItem('budget_config', JSON.stringify(saved));
+    } catch(e){}
+    populateDropdowns();
+    if(!silent) showAlert('✅ โหลด Budget_Type ('+masterBudgetTypes.length+') และ Plan_Type ('+masterPlanTypes.length+') จาก Sheet สำเร็จ!','success');
+  } catch(e) {
+    populateDropdowns(); // fallback to defaults
+    if(!silent) showAlert('⚠️ โหลด Master List ไม่ได้ ใช้ค่าเริ่มต้นแทน','error');
+  }
+}
+
+// Apply org name to header
+function applyOrgToHeader() {
+  document.getElementById('header-sub-display').innerHTML =
+    (config.orgName||'') + ' &nbsp;|&nbsp; ปีงบประมาณ พ.ศ. <span id="header-year-display">'+(config.year||'')+'</span>';
+  document.title = 'ระบบคุมการเบิกจ่ายงบประมาณ | '+(config.orgName||'');
+}
+applyOrgToHeader();
+
+// ============================================================
+// CPD DATA — ตัวอย่างจาก Sheet plan_cpd (เป้าหมายกรมรายเดือน %)
+// ============================================================
+const MONTHS_TH = ['ต.ค.','พ.ย.','ธ.ค.','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.'];
+const MONTHS_FULL = ['ตุลาคม','พฤศจิกายน','ธันวาคม','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน'];
+
+// CPD data: monthly target %, cumulative target %, actual monthly %, actual cumulative %
+// Structure matches sheet plan_cpd: month | monthly_target | cum_target | monthly_actual | cum_actual | note
+let cpdData = [
+  {month:'ต.ค.',  monthIdx:0, target_m:5.00,  target_c:5.00,  actual_m:3.20,  actual_c:3.20,  note:''},
+  {month:'พ.ย.',  monthIdx:1, target_m:8.00,  target_c:13.00, actual_m:7.50,  actual_c:10.70, note:''},
+  {month:'ธ.ค.',  monthIdx:2, target_m:8.00,  target_c:21.00, actual_m:6.80,  actual_c:17.50, note:''},
+  {month:'ม.ค.',  monthIdx:3, target_m:8.00,  target_c:29.00, actual_m:9.10,  actual_c:26.60, note:''},
+  {month:'ก.พ.',  monthIdx:4, target_m:8.00,  target_c:37.00, actual_m:8.30,  actual_c:34.90, note:''},
+  {month:'มี.ค.', monthIdx:5, target_m:9.00,  target_c:46.00, actual_m:7.90,  actual_c:42.80, note:''},
+  {month:'เม.ย.', monthIdx:6, target_m:9.00,  target_c:55.00, actual_m:5.76,  actual_c:48.56, note:'ข้อมูล ณ 1 เม.ย.'},
+  {month:'พ.ค.',  monthIdx:7, target_m:9.00,  target_c:64.00, actual_m:null,  actual_c:null,  note:''},
+  {month:'มิ.ย.', monthIdx:8, target_m:8.00,  target_c:72.00, actual_m:null,  actual_c:null,  note:''},
+  {month:'ก.ค.',  monthIdx:9, target_m:8.00,  target_c:80.00, actual_m:null,  actual_c:null,  note:''},
+  {month:'ส.ค.',  monthIdx:10,target_m:9.00,  target_c:89.00, actual_m:null,  actual_c:null,  note:''},
+  {month:'ก.ย.',  monthIdx:11,target_m:11.00, target_c:100.00,actual_m:null,  actual_c:null,  note:''},
+];
+let selectedCPDMonth = 6; // default เม.ย.
+let cpdChartInstance = null;
+
+// Data from CSV
+const budgetSummary = [
+  {id:'1', type:'งบบุคลากร', budget:5200965.68, disbursed:2674465.68, remain:2526500.00, pct:51.42},
+  {id:'2', type:'งบดำเนินงาน', budget:2576966.00, disbursed:1113763.44, remain:1463202.56, pct:43.22},
+  {id:'3', type:'งบลงทุน', budget:0, disbursed:0, remain:0, pct:0},
+  {id:'4', type:'เงินอุดหนุน', budget:48000.00, disbursed:12000.00, remain:36000.00, pct:25.00},
+  {id:'5', type:'งบรายจ่ายอื่น', budget:0, disbursed:0, remain:0, pct:0},
+];
+
+const planSummary = [
+  {plan:'แผนงานบุคลากรภาครัฐ', budget:6046267.68, disbursed:3086867.68, remain:2959400.00, pct:51.05},
+  {plan:'แผนงานพื้นฐาน - ส่งเสริมสหกรณ์', budget:1192920.00, disbursed:500580.44, remain:692339.56, pct:41.96},
+  {plan:'แผนงานพื้นฐาน - กำกับดูแล', budget:261320.00, disbursed:101178.00, remain:160142.00, pct:38.72},
+  {plan:'ยุทธศาสตร์เสริมสร้างพลังทางสังคม', budget:132360.00, disbursed:18553.00, remain:113807.00, pct:14.02},
+  {plan:'ยุทธศาสตร์เศรษฐกิจฐานราก', budget:36914.00, disbursed:18482.00, remain:18432.00, pct:50.07},
+  {plan:'ยุทธศาสตร์การเกษตรสร้างมูลค่า', budget:155750.00, disbursed:74168.00, remain:81582.00, pct:47.62},
+];
+
+// Detailed records from CSV
+let allRecords = [
+  {id:1,date:'2026-04-01',year:'2569',activity:'ค่าตอบแทนพนักงานราชการ',plan:'แผนงานบุคลากรภาครัฐ',budgettype:'งบบุคลากร',unit:'ฝ่ายบริหารทั่วไป',budget:5183585.68,disbursed:2663185.68,remain:2520400.00,pct:51.38,status:'เบิกจ่ายบางส่วน'},
+  {id:2,date:'2026-04-01',year:'2569',activity:'เงินเพิ่มค่าครองชีพชั่วคราว',plan:'แผนงานบุคลากรภาครัฐ',budgettype:'งบบุคลากร',unit:'ฝ่ายบริหารทั่วไป',budget:17380.00,disbursed:11280.00,remain:6100.00,pct:64.90,status:'เบิกจ่ายบางส่วน'},
+  {id:3,date:'2026-04-01',year:'2569',activity:'ค่าตอบแทน-ค่าเช่าบ้าน',plan:'แผนงานบุคลากรภาครัฐ',budgettype:'งบดำเนินงาน',unit:'ฝ่ายบริหารทั่วไป',budget:665200.00,disbursed:321800.00,remain:343400.00,pct:48.38,status:'เบิกจ่ายบางส่วน'},
+  {id:4,date:'2026-04-01',year:'2569',activity:'เงินสมทบกองทุนประกันสังคม',plan:'แผนงานบุคลากรภาครัฐ',budgettype:'งบดำเนินงาน',unit:'ฝ่ายบริหารทั่วไป',budget:171102.00,disbursed:90602.00,remain:80500.00,pct:52.95,status:'เบิกจ่ายบางส่วน'},
+  {id:5,date:'2026-04-01',year:'2569',activity:'เงินสมทบกองทุนเงินทดแทน',plan:'แผนงานบุคลากรภาครัฐ',budgettype:'งบดำเนินงาน',unit:'ฝ่ายบริหารทั่วไป',budget:9000.00,disbursed:0,remain:9000.00,pct:0,status:'ยังไม่เบิกจ่าย'},
+  {id:6,date:'2026-04-01',year:'2569',activity:'ค่าใช้จ่ายในการบริหารทั่วไป - ซ่อมแซมครุภัณฑ์',plan:'แผนงานพื้นฐาน',budgettype:'งบดำเนินงาน',unit:'ฝ่ายบริหารทั่วไป',budget:55000.00,disbursed:0,remain:55000.00,pct:0,status:'ยังไม่เบิกจ่าย'},
+  {id:7,date:'2026-04-01',year:'2569',activity:'ค่าวัสดุสำนักงาน',plan:'แผนงานพื้นฐาน',budgettype:'งบดำเนินงาน',unit:'ฝ่ายบริหารทั่วไป',budget:257100.00,disbursed:139303.64,remain:117796.36,pct:54.18,status:'เบิกจ่ายบางส่วน'},
+  {id:8,date:'2026-04-01',year:'2569',activity:'ค่าวัสดุเชื้อเพลิงและหล่อลื่น',plan:'แผนงานพื้นฐาน',budgettype:'งบดำเนินงาน',unit:'ฝ่ายบริหารทั่วไป',budget:72000.00,disbursed:28824.90,remain:43175.10,pct:40.03,status:'เบิกจ่ายบางส่วน'},
+  {id:9,date:'2026-04-01',year:'2569',activity:'ค่าใช้จ่ายสำหรับงานอำนวยการ',plan:'แผนงานพื้นฐาน',budgettype:'งบดำเนินงาน',unit:'ฝ่ายบริหารทั่วไป',budget:126000.00,disbursed:38834.71,remain:87165.29,pct:30.82,status:'เบิกจ่ายบางส่วน'},
+  {id:10,date:'2026-04-01',year:'2569',activity:'กลุ่มส่งเสริมสหกรณ์ 1 (62 แห่ง)',plan:'แผนงานพื้นฐาน',budgettype:'งบดำเนินงาน',unit:'กลุ่มส่งเสริมสหกรณ์ 1',budget:105400.00,disbursed:59827.00,remain:45573.00,pct:56.76,status:'เบิกจ่ายบางส่วน'},
+  {id:11,date:'2026-04-01',year:'2569',activity:'กลุ่มส่งเสริมสหกรณ์ 2 (56 แห่ง)',plan:'แผนงานพื้นฐาน',budgettype:'งบดำเนินงาน',unit:'กลุ่มส่งเสริมสหกรณ์ 2',budget:95200.00,disbursed:51885.00,remain:43315.00,pct:54.50,status:'เบิกจ่ายบางส่วน'},
+  {id:12,date:'2026-04-01',year:'2569',activity:'กลุ่มส่งเสริมสหกรณ์ 3 (50 แห่ง)',plan:'แผนงานพื้นฐาน',budgettype:'งบดำเนินงาน',unit:'กลุ่มส่งเสริมสหกรณ์ 3',budget:85000.00,disbursed:23819.00,remain:61181.00,pct:28.02,status:'เบิกจ่ายบางส่วน'},
+  {id:13,date:'2026-04-01',year:'2569',activity:'กลุ่มส่งเสริมสหกรณ์ 4 (41 แห่ง)',plan:'แผนงานพื้นฐาน',budgettype:'งบดำเนินงาน',unit:'กลุ่มส่งเสริมสหกรณ์ 4',budget:69700.00,disbursed:35529.00,remain:34171.00,pct:50.97,status:'เบิกจ่ายบางส่วน'},
+  {id:14,date:'2026-04-01',year:'2569',activity:'กลุ่มส่งเสริมสหกรณ์ 5 (17 แห่ง)',plan:'แผนงานพื้นฐาน',budgettype:'งบดำเนินงาน',unit:'กลุ่มส่งเสริมสหกรณ์ 5',budget:28900.00,disbursed:16077.00,remain:12823.00,pct:55.63,status:'เบิกจ่ายบางส่วน'},
+  {id:15,date:'2026-04-01',year:'2569',activity:'กลุ่มส่งเสริมสหกรณ์ 6 (26 แห่ง)',plan:'แผนงานพื้นฐาน',budgettype:'งบดำเนินงาน',unit:'กลุ่มส่งเสริมสหกรณ์ 6',budget:44200.00,disbursed:25162.00,remain:19038.00,pct:56.93,status:'เบิกจ่ายบางส่วน'},
+  {id:16,date:'2026-04-01',year:'2569',activity:'ค่าสาธารณูปโภค - ค่าไปรษณีย์โทรคมนาคม',plan:'แผนงานพื้นฐาน',budgettype:'งบดำเนินงาน',unit:'ฝ่ายบริหารทั่วไป',budget:128300.00,disbursed:52401.19,remain:75898.81,pct:40.84,status:'เบิกจ่ายบางส่วน'},
+  {id:17,date:'2026-04-01',year:'2569',activity:'ค่าเช่าบริการสัญญาณโทรศัพท์ (ผอ.)',plan:'แผนงานพื้นฐาน',budgettype:'งบดำเนินงาน',unit:'ฝ่ายบริหารทั่วไป',budget:24000.00,disbursed:11556.00,remain:12444.00,pct:48.15,status:'เบิกจ่ายบางส่วน'},
+  {id:18,date:'2026-04-01',year:'2569',activity:'การตรวจการสหกรณ์ทีมระดับจังหวัด',plan:'แผนงานพื้นฐาน',budgettype:'งบดำเนินงาน',unit:'กลุ่มตรวจการสหกรณ์',budget:109620.00,disbursed:33101.00,remain:76519.00,pct:30.20,status:'เบิกจ่ายบางส่วน'},
+  {id:19,date:'2026-04-01',year:'2569',activity:'โครงการส่งเสริมสหกรณ์ตามพระราชดำริ',plan:'ยุทธศาสตร์เสริมสร้างพลังทางสังคม',budgettype:'งบดำเนินงาน',unit:'กลุ่มส่งเสริมสหกรณ์ 1',budget:2900.00,disbursed:0,remain:2900.00,pct:0,status:'ยังไม่เบิกจ่าย'},
+  {id:20,date:'2026-04-01',year:'2569',activity:'โครงการส่งเสริมสหกรณ์นักเรียนในโรงเรียน',plan:'ยุทธศาสตร์เสริมสร้างพลังทางสังคม',budgettype:'งบดำเนินงาน',unit:'กลุ่มจัดตั้งและส่งเสริมสหกรณ์',budget:85640.00,disbursed:12720.00,remain:72920.00,pct:14.85,status:'เบิกจ่ายบางส่วน'},
+  {id:21,date:'2026-04-01',year:'2569',activity:'เงินรางวัลโรงเรียนในโครงการพระราชดำริ',plan:'ยุทธศาสตร์เสริมสร้างพลังทางสังคม',budgettype:'เงินอุดหนุน',unit:'กลุ่มจัดตั้งและส่งเสริมสหกรณ์',budget:12000.00,disbursed:12000.00,remain:0,pct:100,status:'เบิกจ่ายแล้ว'},
+  {id:22,date:'2026-04-01',year:'2569',activity:'โครงการคลินิกเกษตรเคลื่อนที่',plan:'ยุทธศาสตร์เสริมสร้างพลังทางสังคม',budgettype:'งบดำเนินงาน',unit:'กลุ่มส่งเสริมพัฒนาการบริหาร',budget:3300.00,disbursed:3300.00,remain:0,pct:100,status:'เบิกจ่ายแล้ว'},
+  {id:23,date:'2026-04-01',year:'2569',activity:'โครงการขับเคลื่อนหลักปรัชญาเศรษฐกิจพอเพียง',plan:'ยุทธศาสตร์เสริมสร้างพลังทางสังคม',budgettype:'งบดำเนินงาน',unit:'กลุ่มจัดตั้งและส่งเสริมสหกรณ์',budget:40520.00,disbursed:2533.00,remain:37987.00,pct:6.25,status:'เบิกจ่ายบางส่วน'},
+  {id:24,date:'2026-04-01',year:'2569',activity:'โครงการพัฒนาผลิตภัณฑ์ชุมชนสถาบันเกษตรกร',plan:'ยุทธศาสตร์เศรษฐกิจฐานราก',budgettype:'งบดำเนินงาน',unit:'กลุ่มส่งเสริมพัฒนาการบริหาร',budget:11460.00,disbursed:5952.00,remain:5508.00,pct:51.94,status:'เบิกจ่ายบางส่วน'},
+  {id:25,date:'2026-04-01',year:'2569',activity:'โครงการส่งเสริมและพัฒนาสินค้าเกษตรอัตลักษณ์',plan:'ยุทธศาสตร์การเกษตรสร้างมูลค่า',budgettype:'งบดำเนินงาน',unit:'กลุ่มส่งเสริมพัฒนาการบริหาร',budget:100000.00,disbursed:49100.00,remain:50900.00,pct:49.10,status:'เบิกจ่ายบางส่วน'},
+  {id:26,date:'2026-04-01',year:'2569',activity:'โครงการส่งเสริมและพัฒนาสถาบันเกษตรกร',plan:'ยุทธศาสตร์การเกษตรสร้างมูลค่า',budgettype:'งบดำเนินงาน',unit:'กลุ่มส่งเสริมพัฒนาการบริหาร',budget:33330.00,disbursed:24550.00,remain:8780.00,pct:73.66,status:'เบิกจ่ายบางส่วน'},
+  {id:27,date:'2026-04-01',year:'2569',activity:'โครงการพัฒนาศักยภาพสหกรณ์ผู้เลี้ยงโค',plan:'ยุทธศาสตร์การเกษตรสร้างมูลค่า',budgettype:'งบดำเนินงาน',unit:'กลุ่มส่งเสริมพัฒนาการบริหาร',budget:20500.00,disbursed:0,remain:20500.00,pct:0,status:'ยังไม่เบิกจ่าย'},
+];
+
+let filteredRecords = [...allRecords];
+let currentPage = 1;
+const perPage = 10;
+let sortField = 'id';
+let sortDir = 1;
+
+// ============================================================
+// CLOCK
+// ============================================================
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('th-TH');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ============================================================
+// PAGE NAV
+// ============================================================
+function showPage(page, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  if(el) el.classList.add('active');
+  if(page === 'entry') loadGoogleSheetData();
+  if(page === 'cpd') { renderCPDMonthChips(); renderCPDTable(); renderCPDChart(); }
+  if(page === 'daily') { renderDailyKPIs(); renderDailyTable(); renderDailyCharts(); }
+  if(page === 'dashboard') { renderGauge(); renderDailyDashMini(); }
+}
+
+// ============================================================
+// FORMAT
+// ============================================================
+function fmt(n) {
+  if(!n && n!==0) return '-';
+  return Number(n).toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtShort(n) {
+  if(!n && n!==0) return '-';
+  if(Math.abs(n)>=1000000) return '฿'+(n/1000000).toFixed(2)+'M';
+  if(Math.abs(n)>=1000) return '฿'+(n/1000).toFixed(1)+'K';
+  return '฿'+fmt(n);
+}
+function pctBadge(pct) {
+  const p = parseFloat(pct)||0;
+  let cls = p>=70?'pct-high':(p>=30?'pct-mid':'pct-low');
+  return `<span class="pct-badge ${cls}">${p.toFixed(2)}%</span>`;
+}
+function statusBadge(s) {
+  let cls = s==='เบิกจ่ายแล้ว'?'status-active':(s==='ยังไม่เบิกจ่าย'?'status-urgent':'status-warning');
+  return `<span class="status-badge ${cls}">${s}</span>`;
+}
+
+// ============================================================
+// DASHBOARD — SUMMARY + GAUGE
+// ============================================================
+function renderSummary() {
+  const dynBudget = masterBudgetTypes.map(t => {
+    const recs = allRecords.filter(r => r.budgettype === t.name);
+    const budget = recs.reduce((s,r)=>s+r.budget,0);
+    const disbursed = recs.reduce((s,r)=>s+r.disbursed,0);
+    const remain = budget - disbursed;
+    const pct = budget>0 ? +(disbursed/budget*100).toFixed(2) : 0;
+    return {id:t.id, type:t.name, budget, disbursed, remain, pct};
+  });
+  const dynPlan = masterPlanTypes.map(t => {
+    const recs = allRecords.filter(r => r.plan === t.name);
+    const budget = recs.reduce((s,r)=>s+r.budget,0);
+    const disbursed = recs.reduce((s,r)=>s+r.disbursed,0);
+    const remain = budget - disbursed;
+    const pct = budget>0 ? +(disbursed/budget*100).toFixed(2) : 0;
+    return {id:t.id, plan:t.name, budget, disbursed, remain, pct};
+  });
+
+  // ─ Update KPIs ─
+  const totB = dynBudget.reduce((s,r)=>s+r.budget,0);
+  const totD = dynBudget.reduce((s,r)=>s+r.disbursed,0);
+  const totR = dynBudget.reduce((s,r)=>s+r.remain,0);
+  const totPct = totB>0 ? (totD/totB*100) : 0;
+  const notPaid = allRecords.filter(r=>r.status==='ยังไม่เบิกจ่าย').length;
+
+  document.getElementById('kpi-total').textContent = '฿'+fmt(totB);
+  document.getElementById('kpi-total-sub').textContent = 'ปีงบประมาณ '+(config.year||'2569');
+  document.getElementById('kpi-disbursed').textContent = '฿'+fmt(totD);
+  document.getElementById('kpi-disbursed-sub').textContent = 'คิดเป็น '+totPct.toFixed(2)+'% ของงบทั้งหมด';
+  document.getElementById('kpi-bar').style.width = Math.min(totPct,100)+'%';
+  document.getElementById('kpi-remain').textContent = '฿'+fmt(totR);
+  document.getElementById('kpi-remain-sub').textContent = ((totB>0?(totR/totB*100):0).toFixed(1))+'% ของงบทั้งหมด';
+  document.getElementById('kpi-notpaid').textContent = notPaid;
+  document.getElementById('kpi-notpaid-sub').textContent = 'จาก '+allRecords.length+' รายการทั้งหมด';
+
+  // ─ Daily KPI on dash ─
+  const now = new Date();
+  const monthDailyRecs = dailyRecords.filter(r=>{
+    const d = new Date(r.date); return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();
+  });
+  const monthTotal = monthDailyRecs.reduce((s,r)=>s+r.amount,0);
+  document.getElementById('kpi-daily-month').textContent = '฿'+fmt(monthTotal);
+  document.getElementById('kpi-daily-count').textContent = monthDailyRecs.length+' รายการเดือนนี้';
+
+  // ─ Inline % bar helper ─
+  const inlinePct = (pct, color='#C9A227') => {
+    const p = Math.min(parseFloat(pct)||0,100);
+    const txtCol = p>=70?'#1A7A4A':(p>=30?'#B7770D':'#C0392B');
+    return `<div style="display:flex;align-items:center;gap:8px;">
+      <div style="flex:1;height:10px;background:#E8EFF8;border-radius:5px;overflow:hidden;">
+        <div style="width:${p}%;height:100%;background:${p>=70?'#27AE60':(p>=30?'#C9A227':'#E74C3C')};border-radius:5px;transition:width .8s;"></div>
+      </div>
+      <span style="font-weight:800;font-size:13px;color:${txtCol};min-width:48px;text-align:right;">${p.toFixed(1)}%</span>
+    </div>`;
+  };
+
+  // ─ Budget Type table ─
+  const tbody = document.getElementById('summary-tbody');
+  let tb=0,td2=0,tr2=0;
+  tbody.innerHTML = dynBudget.map(r => {
+    tb+=r.budget; td2+=r.disbursed; tr2+=r.remain;
+    return `<tr>
+      <td><span style="font-size:11px;color:var(--text-sub);font-weight:600;">${r.id}</span></td>
+      <td><strong>${r.type}</strong></td>
+      <td class="num">${r.budget?fmt(r.budget):'-'}</td>
+      <td class="num" style="color:var(--gold);font-weight:700;">${r.disbursed?fmt(r.disbursed):'-'}</td>
+      <td class="num" style="color:var(--teal);">${r.remain?fmt(r.remain):'-'}</td>
+      <td style="min-width:160px;">${r.budget?inlinePct(r.pct):'-'}</td>
+      <td>${r.budget?statusBadge(r.pct>=70?'เบิกจ่ายแล้ว':(r.pct>0?'เบิกจ่ายบางส่วน':'ยังไม่เบิกจ่าย')):statusBadge('ยังไม่เบิกจ่าย')}</td>
+    </tr>`;
+  }).join('');
+  tbody.innerHTML += `<tr class="total">
+    <td colspan="2" style="font-weight:800;">รวมงบประมาณทั้งหมด</td>
+    <td class="num">${fmt(tb)}</td>
+    <td class="num" style="color:var(--gold);font-weight:800;">${fmt(td2)}</td>
+    <td class="num" style="color:var(--teal);font-weight:800;">${fmt(tr2)}</td>
+    <td>${inlinePct(tb>0?(td2/tb*100):0)}</td>
+    <td></td>
+  </tr>`;
+
+  // ─ Plan Type table ─
+  const ptbody = document.getElementById('plan-tbody');
+  let pb=0,pd=0,pr=0;
+  ptbody.innerHTML = dynPlan.map(r => {
+    pb+=r.budget; pd+=r.disbursed; pr+=r.remain;
+    return `<tr>
+      <td><span style="font-size:11px;color:var(--text-sub);font-weight:600;margin-right:6px;">${r.id}</span><strong>${r.plan}</strong></td>
+      <td class="num">${fmt(r.budget)||'-'}</td>
+      <td class="num" style="color:var(--gold);font-weight:700;">${fmt(r.disbursed)||'-'}</td>
+      <td class="num" style="color:var(--teal);">${fmt(r.remain)||'-'}</td>
+      <td style="min-width:160px;">${r.budget?inlinePct(r.pct):'-'}</td>
+      <td>${r.budget?statusBadge(r.pct>=70?'เบิกจ่ายแล้ว':(r.pct>0?'เบิกจ่ายบางส่วน':'ยังไม่เบิกจ่าย')):statusBadge('ยังไม่เบิกจ่าย')}</td>
+    </tr>`;
+  }).join('');
+  ptbody.innerHTML += `<tr class="total">
+    <td style="font-weight:800;">รวมทั้งหมด</td>
+    <td class="num">${fmt(pb)}</td>
+    <td class="num" style="color:var(--gold);font-weight:800;">${fmt(pd)}</td>
+    <td class="num" style="color:var(--teal);font-weight:800;">${fmt(pr)}</td>
+    <td>${inlinePct(pb>0?(pd/pb*100):0)}</td>
+    <td></td>
+  </tr>`;
+
+  renderGauge();
+  renderDailyDashMini();
+}
+
+// ─ Gauge ─
+function renderGauge() {
+  const totB = allRecords.reduce((s,r)=>s+r.budget,0);
+  const totD = allRecords.reduce((s,r)=>s+r.disbursed,0);
+  const pct = totB>0 ? (totD/totB*100) : 0;
+  const CIRC = 351.86;
+  const offset = CIRC - (pct/100)*CIRC;
+  const circle = document.getElementById('gauge-circle');
+  if(circle){
+    const color = pct>=70?'#27AE60':(pct>=30?'#C9A227':'#E74C3C');
+    circle.style.stroke = color;
+    circle.style.strokeDashoffset = offset;
+    document.getElementById('gauge-pct-text').textContent = pct.toFixed(1)+'%';
+    document.getElementById('gauge-pct-text').style.color = color;
+  }
+  // CPD target for current month
+  const cpdRow = cpdData.find(r=>r.monthIdx===selectedCPDMonth);
+  const cpdTarget = cpdRow ? cpdRow.target_c : 55;
+  const variance = pct - cpdTarget;
+  const varEl = document.getElementById('gauge-variance');
+  if(varEl){
+    varEl.textContent = (variance>=0?'+':'')+variance.toFixed(2)+'% vs CPD';
+    varEl.style.color = variance>=0?'var(--green)':'var(--red)';
+  }
+  if(document.getElementById('gauge-cpd-target'))
+    document.getElementById('gauge-cpd-target').textContent = cpdTarget.toFixed(2)+'%';
+
+  // Mini bars per budget type
+  const bars = document.getElementById('gauge-bars');
+  if(!bars) return;
+  const colors = ['#0D2B5E','#1B7A8C','#C9A227','#1A7A4A','#C0392B'];
+  bars.innerHTML = masterBudgetTypes.map((t,i)=>{
+    const recs = allRecords.filter(r=>r.budgettype===t.name);
+    const b = recs.reduce((s,r)=>s+r.budget,0);
+    const d = recs.reduce((s,r)=>s+r.disbursed,0);
+    const p = b>0?(d/b*100):0;
+    if(!b) return '';
+    return `<div class="gauge-bar-row">
+      <div class="gauge-bar-label" title="${t.name}">${t.id}: ${t.name.length>8?t.name.substring(0,8)+'…':t.name}</div>
+      <div class="gauge-bar-track"><div class="gauge-bar-fill" style="width:${Math.min(p,100)}%;background:${colors[i%colors.length]};"></div></div>
+      <div class="gauge-bar-val">${p.toFixed(0)}%</div>
+    </div>`;
+  }).join('');
+}
+
+// ─ Daily mini on dashboard ─
+function renderDailyDashMini() {
+  const tbody = document.getElementById('daily-dash-tbody');
+  if(!tbody) return;
+  const latest = [...dailyRecords].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,10);
+  if(!latest.length){
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--text-sub)">ยังไม่มีข้อมูลรายจ่ายรายวัน — ไปที่ 💸 รายจ่ายรายวัน เพื่อเพิ่มข้อมูล</td></tr>';
+    return;
+  }
+  const catColors = {'ค่าพาหนะ':'cat-travel','ค่าวัสดุ':'cat-supply','ค่าใช้สอย':'cat-service','ค่าประชุม':'cat-meeting','ค่าตอบแทน':'cat-other','อื่นๆ':'cat-other'};
+  tbody.innerHTML = latest.map(r=>`<tr>
+    <td style="font-size:12px;color:var(--text-sub);">${r.date}</td>
+    <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.description}">${r.description}</td>
+    <td><span class="daily-cat-badge ${catColors[r.category]||'cat-other'}">${r.category}</span></td>
+    <td style="font-size:12px;color:var(--text-sub);">${r.unit||'-'}</td>
+    <td class="num" style="font-weight:700;color:var(--navy);">฿${fmt(r.amount)}</td>
+    <td>${statusBadge(r.status==='อนุมัติแล้ว'?'เบิกจ่ายแล้ว':(r.status==='รออนุมัติ'?'เบิกจ่ายบางส่วน':'ยังไม่เบิกจ่าย'))}</td>
+  </tr>`).join('');
+}
+function renderCharts() {
+  // Build dynamic data from master lists + allRecords
+  const btData = masterBudgetTypes.map(t => {
+    return allRecords.filter(r=>r.budgettype===t.name).reduce((s,r)=>s+r.budget,0);
+  });
+  const ptBudget = masterPlanTypes.map(t => allRecords.filter(r=>r.plan===t.name).reduce((s,r)=>s+r.budget,0));
+  const ptDisbursed = masterPlanTypes.map(t => allRecords.filter(r=>r.plan===t.name).reduce((s,r)=>s+r.disbursed,0));
+
+  // Donut chart - budget type
+  const c1 = document.getElementById('chartType').getContext('2d');
+  new Chart(c1, {
+    type: 'doughnut',
+    data: {
+      labels: masterBudgetTypes.map(t=>t.name),
+      datasets:[{
+        data: btData,
+        backgroundColor:['#0D2B5E','#1B7A8C','#C9A227','#1A7A4A','#C0392B','#7F3FBF','#D35400'],
+        borderWidth: 2, borderColor:'#fff'
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'right', labels:{font:{family:'Sarabun',size:12}, color:'#1A2744', generateLabels: chart => {
+          return chart.data.labels.map((l,i)=>({
+            text: l, fillStyle: chart.data.datasets[0].backgroundColor[i],
+            strokeStyle: '#fff', lineWidth:1, index:i,
+            hidden: !chart.data.datasets[0].data[i]
+          }));
+        }}},
+        tooltip:{callbacks:{label:(c)=>{
+          const total = c.dataset.data.reduce((a,b)=>a+(b||0),0);
+          return ` ฿${fmt(c.parsed)} (${total?((c.parsed/total)*100).toFixed(1):'0'}%)`;
+        }}}
+      }
+    }
+  });
+
+  // Bar chart - plan
+  const c2 = document.getElementById('chartPlan').getContext('2d');
+  new Chart(c2, {
+    type: 'bar',
+    data: {
+      labels: masterPlanTypes.map(r=>r.name.length>18?r.name.substring(0,18)+'…':r.name),
+      datasets:[
+        {label:'งบประมาณ', data:ptBudget, backgroundColor:'rgba(13,43,94,0.25)', borderColor:'#0D2B5E', borderWidth:1.5},
+        {label:'เบิกจ่าย', data:ptDisbursed, backgroundColor:'rgba(201,162,39,0.8)', borderColor:'#C9A227', borderWidth:1.5},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{family:'Sarabun',size:12}}}},
+      scales:{
+        x:{ticks:{font:{family:'Sarabun',size:11}}, grid:{display:false}},
+        y:{ticks:{font:{family:'Sarabun',size:11}, callback:v=>'฿'+(v/1000).toFixed(0)+'K'}, grid:{color:'#EBF0F8'}}
+      }
+    }
+  });
+}
+
+// ============================================================
+// DETAIL TABLE
+// ============================================================
+function renderDetailTable() {
+  const tbody = document.getElementById('detail-tbody');
+  const tfoot = document.getElementById('detail-tfoot');
+  const start = (currentPage-1)*perPage;
+  const slice = filteredRecords.slice(start, start+perPage);
+  let tb=0,td=0,tr=0;
+  filteredRecords.forEach(r=>{ tb+=r.budget; td+=r.disbursed; tr+=r.remain; });
+
+  tbody.innerHTML = slice.map(r => `
+    <tr>
+      <td>${r.id}</td>
+      <td><div style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.activity}">${r.activity}</div></td>
+      <td><span style="font-size:12px;color:var(--text-sub)">${r.plan||'-'}</span></td>
+      <td>${r.budgettype}</td>
+      <td class="num">${fmt(r.budget)}</td>
+      <td class="num" style="color:var(--gold)">${fmt(r.disbursed)}</td>
+      <td class="num" style="color:var(--teal)">${fmt(r.remain)}</td>
+      <td class="num">${pctBadge(r.pct)}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td>
+        <div class="gap-actions">
+          <button class="icon-btn" onclick="openEdit(${r.id})" title="แก้ไข">✏️</button>
+          <button class="icon-btn del" onclick="deleteRecord(${r.id})" title="ลบ">🗑️</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  tfoot.innerHTML = `<tr>
+    <td colspan="4">รวมทั้งหมด (${filteredRecords.length} รายการ)</td>
+    <td class="num" style="text-align:right">${fmt(tb)}</td>
+    <td class="num" style="text-align:right;color:var(--gold)">${fmt(td)}</td>
+    <td class="num" style="text-align:right;color:var(--teal)">${fmt(tr)}</td>
+    <td class="num" style="text-align:right">${pctBadge((td/tb*100).toFixed(2))}</td>
+    <td colspan="2"></td>
+  </tr>`;
+
+  document.getElementById('record-count').textContent = `แสดง ${Math.min(start+1,filteredRecords.length)}-${Math.min(start+perPage,filteredRecords.length)} จาก ${filteredRecords.length} รายการ`;
+  renderPagination();
+}
+
+function renderPagination() {
+  const total = Math.ceil(filteredRecords.length/perPage);
+  const pg = document.getElementById('pagination');
+  if(total<=1){ pg.innerHTML=''; return; }
+  let html = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+  for(let i=1;i<=total;i++){
+    if(i===1||i===total||Math.abs(i-currentPage)<=1) html+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+    else if(Math.abs(i-currentPage)===2) html+=`<span style="padding:5px 4px;color:var(--text-sub)">…</span>`;
+  }
+  html+=`<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===total?'disabled':''}>›</button>`;
+  pg.innerHTML = html;
+}
+
+function goPage(p) {
+  const total = Math.ceil(filteredRecords.length/perPage);
+  if(p<1||p>total) return;
+  currentPage=p;
+  renderDetailTable();
+}
+
+function filterTable() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const ft = document.getElementById('filter-type').value;
+  const fp = document.getElementById('filter-plan').value;
+  const fs = document.getElementById('filter-status').value;
+  filteredRecords = allRecords.filter(r => {
+    if(q && !r.activity.toLowerCase().includes(q) && !(r.unit||'').toLowerCase().includes(q)) return false;
+    if(ft && r.budgettype !== ft) return false;
+    if(fp && r.plan !== fp) return false;
+    if(fs && r.status !== fs) return false;
+    return true;
+  });
+  currentPage=1;
+  renderDetailTable();
+}
+
+function clearFilters() {
+  document.getElementById('search-input').value='';
+  document.getElementById('filter-type').value='';
+  document.getElementById('filter-plan').value='';
+  document.getElementById('filter-status').value='';
+  filteredRecords=[...allRecords];
+  currentPage=1;
+  renderDetailTable();
+}
+
+function sortTable(field) {
+  if(sortField===field) sortDir*=-1; else { sortField=field; sortDir=1; }
+  allRecords.sort((a,b)=>{
+    let av=a[field],bv=b[field];
+    if(typeof av==='string') return av.localeCompare(bv,'th')*sortDir;
+    return (av-bv)*sortDir;
+  });
+  filteredRecords=[...allRecords];
+  renderDetailTable();
+}
+
+function exportCSV() {
+  const headers = ['ที่','รายการ','แผนงาน','ประเภทงบ','หน่วยงาน','งบประมาณ','เบิกจ่าย','คงเหลือ','ร้อยละ','สถานะ'];
+  const rows = filteredRecords.map(r=>[r.id,r.activity,r.plan,r.budgettype,r.unit,r.budget,r.disbursed,r.remain,r.pct+'%',r.status]);
+  let csv = '\uFEFF' + [headers,...rows].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download = 'งบประมาณ_สนส_กทม1_2569.csv';
+  a.click();
+}
+
+// ============================================================
+// EDIT / DELETE
+// ============================================================
+function openEdit(id) {
+  const r = allRecords.find(x=>x.id===id);
+  if(!r) return;
+  document.getElementById('m-rowIndex').value = id;
+  document.getElementById('m-activity').value = r.activity;
+  document.getElementById('m-budget').value = r.budget;
+  document.getElementById('m-disbursed').value = r.disbursed;
+  document.getElementById('m-remain').value = r.remain;
+  document.getElementById('m-status').value = r.status;
+  document.getElementById('modal-edit').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-edit').classList.remove('open');
+}
+
+function calcRemainModal() {
+  const b = parseFloat(document.getElementById('m-budget').value)||0;
+  const d = parseFloat(document.getElementById('m-disbursed').value)||0;
+  document.getElementById('m-remain').value = (b-d).toFixed(2);
+}
+
+function saveEdit() {
+  const id = parseInt(document.getElementById('m-rowIndex').value);
+  const idx = allRecords.findIndex(x=>x.id===id);
+  if(idx<0) return;
+  const b = parseFloat(document.getElementById('m-budget').value)||0;
+  const d = parseFloat(document.getElementById('m-disbursed').value)||0;
+  allRecords[idx] = {
+    ...allRecords[idx],
+    activity: document.getElementById('m-activity').value,
+    budget: b, disbursed: d, remain: b-d,
+    pct: b>0?+(d/b*100).toFixed(2):0,
+    status: document.getElementById('m-status').value,
+  };
+  filteredRecords = [...allRecords];
+  closeModal();
+  renderDetailTable();
+  showAlert('✅ บันทึกการแก้ไขสำเร็จแล้ว', 'success');
+  // Try save to Google Sheet
+  saveRowToGoogleSheet(allRecords[idx]);
+}
+
+function deleteRecord(id) {
+  if(!confirm('ต้องการลบรายการนี้?')) return;
+  allRecords = allRecords.filter(r=>r.id!==id);
+  filteredRecords = [...allRecords];
+  renderDetailTable();
+  showAlert('🗑️ ลบรายการเรียบร้อยแล้ว', 'success');
+}
+
+// ============================================================
+// ENTRY FORM
+// ============================================================
+function calcRemain() {
+  const b = parseFloat(document.getElementById('f-budget').value)||0;
+  const d = parseFloat(document.getElementById('f-disbursed').value)||0;
+  document.getElementById('f-remain').value = (b-d).toFixed(2);
+}
+
+function resetForm() {
+  ['f-date','f-activity','f-budget','f-transfer','f-disbursed','f-remain'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
+  document.getElementById('edit-id').value='';
+  document.getElementById('form-mode-label').textContent='เพิ่มรายการใหม่';
+}
+
+function saveToSheet() {
+  const activity = document.getElementById('f-activity').value.trim();
+  const budget = parseFloat(document.getElementById('f-budget').value)||0;
+  const disbursed = parseFloat(document.getElementById('f-disbursed').value)||0;
+  if(!activity){ showEntryAlert('กรุณาระบุรายการ/กิจกรรม', 'error'); return; }
+  if(!budget){ showEntryAlert('กรุณาระบุงบประมาณที่ได้รับ', 'error'); return; }
+
+  const newId = Math.max(...allRecords.map(r=>r.id),0)+1;
+  const rec = {
+    id: newId,
+    date: document.getElementById('f-date').value || new Date().toISOString().split('T')[0],
+    year: document.getElementById('f-year').value,
+    activity,
+    plan: document.getElementById('f-plantype').value,
+    budgettype: document.getElementById('f-budgettype').value,
+    unit: document.getElementById('f-unit').value,
+    budget, disbursed, remain: budget-disbursed,
+    pct: budget>0?+(disbursed/budget*100).toFixed(2):0,
+    status: document.getElementById('f-status').value,
+    transfer: parseFloat(document.getElementById('f-transfer').value)||0,
+  };
+  allRecords.unshift(rec);
+  filteredRecords=[...allRecords];
+  renderDetailTable();
+  showEntryAlert('✅ เพิ่มรายการสำเร็จ! รหัส #'+newId, 'success');
+  resetForm();
+  saveRowToGoogleSheet(rec);
+}
+
+// ============================================================
+// GOOGLE SHEETS INTEGRATION
+// ============================================================
+async function loadGoogleSheetData() {
+  const apiKey = config.apiKey;
+  const sheetId = config.sheetId;
+  const sheetName = config.sheetRead;
+  document.getElementById('gs-loading').style.display='block';
+
+  if(!apiKey) {
+    document.getElementById('gs-loading').style.display='none';
+    document.getElementById('gs-config-warning').style.display='block';
+    document.getElementById('gs-tbody').innerHTML = '<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--text-sub)">⚙️ ยังไม่ได้ตั้งค่า API Key</td></tr>';
+    return;
+  }
+  document.getElementById('gs-config-warning').style.display='none';
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName)}!A1:N200?key=${apiKey}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    document.getElementById('gs-loading').style.display='none';
+    if(data.error){ document.getElementById('gs-tbody').innerHTML=`<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--red)">❌ ${data.error.message}</td></tr>`; return; }
+    const rows = data.values||[];
+    if(rows.length<=1){ document.getElementById('gs-tbody').innerHTML='<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--text-sub)">ไม่พบข้อมูลใน Sheet</td></tr>'; return; }
+    const dataRows = rows.slice(1).filter(r=>r[7]&&r[7]!=='');
+    document.getElementById('gs-tbody').innerHTML = dataRows.slice(0,15).map((r,i)=>`
+      <tr>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;" title="${r[7]||''}">${r[7]||'-'}</td>
+        <td class="num" style="font-size:13px;">${r[9]?'฿'+parseFloat(r[9].replace(/,/g,'')).toLocaleString('th-TH',{maximumFractionDigits:0}):'-'}</td>
+        <td class="num" style="font-size:13px;">${r[11]?'฿'+parseFloat(r[11].replace(/,/g,'')).toLocaleString('th-TH',{maximumFractionDigits:0}):'-'}</td>
+        <td style="font-size:12px;">${statusBadge(r[13]||'ไม่ระบุ')}</td>
+      </tr>
+    `).join('') || '<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--text-sub)">ไม่มีรายการที่มีข้อมูล</td></tr>';
+    showAlert('🔄 โหลดข้อมูลจาก Google Sheet สำเร็จ! ('+dataRows.length+' รายการ)', 'success');
+  } catch(e) {
+    document.getElementById('gs-loading').style.display='none';
+    document.getElementById('gs-tbody').innerHTML=`<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--red)">❌ ไม่สามารถเชื่อมต่อได้: ${e.message}</td></tr>`;
+  }
+}
+
+async function saveRowToGoogleSheet(rec) {
+  const apiKey = config.apiKey;
+  const sheetId = config.sheetId;
+  if(!apiKey||!sheetId) return;
+  // Append row via Sheets API
+  const values = [[
+    rec.id, rec.date, rec.year, rec.budgettype, rec.budgettype, rec.plan, rec.plan, rec.activity,
+    rec.unit, rec.budget, rec.transfer||0, rec.disbursed, rec.remain, rec.status
+  ]];
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(config.sheetWrite)}!A:N:append?valueInputOption=USER_ENTERED&key=${apiKey}`;
+    await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({values}) });
+  } catch(e) { console.log('Sheet save error:', e); }
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function saveSettings() {
+  config.sheetId = document.getElementById('cfg-sheet-id').value.trim();
+  config.apiKey = document.getElementById('cfg-api-key').value.trim();
+  // Sanitize: replace spaces → underscore in sheet names
+  const cleanSheet = v => v.trim().replace(/\s+/g, '_');
+  config.sheetRead = cleanSheet(document.getElementById('cfg-sheet-read').value);
+  config.sheetWrite = cleanSheet(document.getElementById('cfg-sheet-write').value);
+  config.sheetCpd = cleanSheet(document.getElementById('cfg-sheet-cpd').value);
+  config.sheetBudgetType = cleanSheet(document.getElementById('cfg-sheet-budgettype').value);
+  config.sheetPlanType = cleanSheet(document.getElementById('cfg-sheet-plantype').value);
+  const sdEl = document.getElementById('cfg-sheet-daily');
+  if(sdEl) config.sheetDaily = cleanSheet(sdEl.value);
+  config.orgName = document.getElementById('cfg-org-name').value.trim();
+  config.year = document.getElementById('cfg-year').value.trim();
+  // Write back sanitized values to inputs
+  document.getElementById('cfg-sheet-read').value = config.sheetRead;
+  document.getElementById('cfg-sheet-write').value = config.sheetWrite;
+  document.getElementById('cfg-sheet-cpd').value = config.sheetCpd;
+  document.getElementById('cfg-sheet-budgettype').value = config.sheetBudgetType;
+  document.getElementById('cfg-sheet-plantype').value = config.sheetPlanType;
+  if(sdEl) sdEl.value = config.sheetDaily;
+  try { localStorage.setItem('budget_config', JSON.stringify(config)); } catch(e){}
+  applyOrgToHeader();
+  document.getElementById('settings-alert').innerHTML = `<div class="alert alert-success">✅ บันทึกการตั้งค่าสำเร็จแล้ว กำลังโหลด Master List...</div>`;
+  loadMasterLists(false);
+  setTimeout(()=>{ document.getElementById('settings-alert').innerHTML=''; }, 4000);
+}
+
+function resetSheetDefaults() {
+  const defaults = {
+    sheetRead:'Data_Entry', sheetWrite:'Data_Entry', sheetCpd:'plan_cpd',
+    sheetBudgetType:'Budget_Type', sheetPlanType:'Plan_Type', sheetDaily:'Daily_Payment'
+  };
+  document.getElementById('cfg-sheet-read').value = defaults.sheetRead;
+  document.getElementById('cfg-sheet-write').value = defaults.sheetWrite;
+  document.getElementById('cfg-sheet-cpd').value = defaults.sheetCpd;
+  document.getElementById('cfg-sheet-budgettype').value = defaults.sheetBudgetType;
+  document.getElementById('cfg-sheet-plantype').value = defaults.sheetPlanType;
+  const sdEl = document.getElementById('cfg-sheet-daily');
+  if(sdEl) sdEl.value = defaults.sheetDaily;
+  document.getElementById('settings-alert').innerHTML =
+    `<div class="alert alert-success">↩️ รีเซ็ตชื่อ Sheet กลับเป็นค่าเริ่มต้นแล้ว — กด 💾 บันทึกการตั้งค่า เพื่อใช้งาน</div>`;
+  setTimeout(()=>{ document.getElementById('settings-alert').innerHTML=''; }, 5000);
+}
+
+async function testConnection() {
+  const apiKey = document.getElementById('cfg-api-key').value.trim();
+  const sheetId = document.getElementById('cfg-sheet-id').value.trim();
+  if(!apiKey||!sheetId){
+    document.getElementById('settings-alert').innerHTML=`<div class="alert alert-error">❌ กรุณากรอก API Key และ Spreadsheet ID</div>`;
+    return;
+  }
+  document.getElementById('settings-alert').innerHTML=`<div class="alert alert-info">⏳ กำลังทดสอบการเชื่อมต่อ...</div>`;
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?key=${apiKey}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.error) throw new Error(data.error.message);
+    const sheetNames = (data.sheets||[]).map(s=>s.properties.title);
+    // Check required sheets exist
+    const required = ['Data_Entry','Budget_Type','Plan_Type','plan_cpd','Daily_Payment'];
+    const found = required.filter(n => sheetNames.includes(n));
+    const missing = required.filter(n => !sheetNames.includes(n));
+    const foundHtml = found.map(n=>`<span style="color:var(--green);font-weight:700;">✅ ${n}</span>`).join(' &nbsp;');
+    const missingHtml = missing.length
+      ? `<br>⚠️ ยังไม่มี Sheet: `+missing.map(n=>`<span style="color:var(--red);">${n}</span>`).join(', ')
+      : '';
+    document.getElementById('settings-alert').innerHTML=
+      `<div class="alert alert-success">✅ เชื่อมต่อสำเร็จ! <strong>${data.properties?.title}</strong> (${sheetNames.length} แท็บ)<br>
+       ${foundHtml}${missingHtml}<br>
+       <span style="font-size:11px;color:var(--text-sub);">แท็บทั้งหมด: ${sheetNames.join(', ')}</span>
+       </div>`;
+  } catch(e) {
+    document.getElementById('settings-alert').innerHTML=
+      `<div class="alert alert-error">❌ ไม่สามารถเชื่อมต่อได้: ${e.message}<br>
+       <span style="font-size:12px;">ตรวจสอบ: 1) API Key ถูกต้อง 2) Spreadsheet ID ถูกต้อง 3) Sheet เป็น Public หรือ share ให้อ่านได้</span></div>`;
+  }
+}
+
+// ============================================================
+// REPORT
+// ============================================================
+function generateReport(type) {
+  let title='', html='';
+  if(type==='budget-type') {
+    title='รายงานตามประเภทงบประมาณ';
+    html = `<table class="summary-table"><thead><tr><th>ที่</th><th>ประเภทงบประมาณ</th><th class="right">งบประมาณ</th><th class="right">เบิกจ่าย</th><th class="right">คงเหลือ</th><th class="right">ร้อยละ</th></tr></thead><tbody>`;
+    budgetSummary.forEach(r=>{ html+=`<tr><td>${r.id}</td><td>${r.type}</td><td class="num">${fmt(r.budget)||'-'}</td><td class="num">${fmt(r.disbursed)||'-'}</td><td class="num">${fmt(r.remain)||'-'}</td><td class="num">${r.budget?pctBadge(r.pct):'-'}</td></tr>`; });
+    html+=`</tbody></table>`;
+  } else if(type==='plan') {
+    title='รายงานตามแผนงาน';
+    html = `<table class="summary-table"><thead><tr><th>แผนงาน</th><th class="right">งบประมาณ</th><th class="right">เบิกจ่าย</th><th class="right">คงเหลือ</th><th class="right">ร้อยละ</th></tr></thead><tbody>`;
+    planSummary.forEach(r=>{ html+=`<tr><td>${r.plan}</td><td class="num">${fmt(r.budget)}</td><td class="num">${fmt(r.disbursed)}</td><td class="num">${fmt(r.remain)}</td><td class="num">${pctBadge(r.pct)}</td></tr>`; });
+    html+=`</tbody></table>`;
+  } else {
+    title='รายงานตามหน่วยงาน';
+    const units={};
+    allRecords.forEach(r=>{
+      if(!units[r.unit]) units[r.unit]={budget:0,disbursed:0,remain:0};
+      units[r.unit].budget+=r.budget; units[r.unit].disbursed+=r.disbursed; units[r.unit].remain+=r.remain;
+    });
+    html=`<table class="summary-table"><thead><tr><th>หน่วยงาน</th><th class="right">งบประมาณ</th><th class="right">เบิกจ่าย</th><th class="right">คงเหลือ</th><th class="right">ร้อยละ</th></tr></thead><tbody>`;
+    Object.entries(units).forEach(([u,v])=>{ const pct=v.budget>0?(v.disbursed/v.budget*100).toFixed(2):0; html+=`<tr><td>${u}</td><td class="num">${fmt(v.budget)}</td><td class="num">${fmt(v.disbursed)}</td><td class="num">${fmt(v.remain)}</td><td class="num">${pctBadge(pct)}</td></tr>`; });
+    html+=`</tbody></table>`;
+  }
+  document.getElementById('report-title').textContent=title;
+  document.getElementById('report-body').innerHTML=html;
+  document.getElementById('report-output').style.display='block';
+  document.getElementById('report-output').scrollIntoView({behavior:'smooth'});
+}
+
+function printReport() { window.print(); }
+
+// ============================================================
+// ALERT
+// ============================================================
+function showAlert(msg, type='info') {
+  const area = document.getElementById('alert-area');
+  const div = document.createElement('div');
+  div.className = `alert alert-${type}`;
+  div.innerHTML = msg;
+  area.appendChild(div);
+  setTimeout(()=>div.remove(), 4000);
+}
+function showEntryAlert(msg, type) {
+  const area = document.getElementById('entry-alert');
+  area.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  setTimeout(()=>area.innerHTML='', 4000);
+}
+
+// Set today date
+document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+
+// ============================================================
+// CPD FUNCTIONS
+// ============================================================
+function renderCPDMonthChips() {
+  const wrap = document.getElementById('month-chips');
+  wrap.innerHTML = cpdData.map(r=>`
+    <button class="month-chip ${r.monthIdx===selectedCPDMonth?'active':''}"
+      onclick="selectCPDMonth(${r.monthIdx})">${r.month}</button>
+  `).join('');
+}
+
+function selectCPDMonth(idx) {
+  selectedCPDMonth = idx;
+  renderCPDMonthChips();
+  renderCPDTable();
+  renderCPDChart();
+  updateCPDKPIs();
+}
+
+function updateCPDKPIs() {
+  const row = cpdData.find(r=>r.monthIdx===selectedCPDMonth);
+  if(!row) return;
+  const target = row.target_c;
+  const actual = row.actual_c;
+  const variance = actual!=null ? (actual - target).toFixed(2) : null;
+
+  document.getElementById('cpd-kpi-target').textContent = target.toFixed(2)+'%';
+  document.getElementById('cpd-kpi-month-label').textContent = 'เป้าสะสม ณ '+row.month;
+  document.getElementById('cpd-kpi-actual').textContent = actual!=null ? actual.toFixed(2)+'%' : 'ยังไม่มีข้อมูล';
+
+  if(variance!=null){
+    const v = parseFloat(variance);
+    document.getElementById('cpd-kpi-variance').textContent = (v>=0?'+':'')+v+'%';
+    document.getElementById('cpd-kpi-variance').className = 'kpi-value '+(v>=0?'variance-pos':'variance-neg');
+    document.getElementById('cpd-kpi-var-label').textContent = v>=0?'สูงกว่าเป้า':'ต่ำกว่าเป้า';
+    document.getElementById('cpd-kpi-result').textContent = v>=-5?(v>=0?'✅ ผ่านเป้า':'⚠️ ใกล้เป้า'):'❌ ต่ำกว่าเป้า';
+    document.getElementById('cpd-kpi-result-sub').textContent = v>=-5?(v>=0?'การเบิกจ่ายเป็นไปตามแผน':'ต่ำกว่าเป้าน้อยกว่า 5%'):'ต้องเร่งรัดการเบิกจ่าย';
+  } else {
+    document.getElementById('cpd-kpi-variance').textContent = '-';
+    document.getElementById('cpd-kpi-result').textContent = '⏳ รอข้อมูล';
+    document.getElementById('cpd-kpi-result-sub').textContent = 'ยังไม่ถึงกำหนด';
+  }
+}
+
+function renderCPDTable() {
+  updateCPDKPIs();
+  const tbody = document.getElementById('cpd-tbody');
+  const tfoot = document.getElementById('cpd-tfoot');
+  const lastActual = cpdData.filter(r=>r.actual_c!=null).slice(-1)[0];
+
+  tbody.innerHTML = cpdData.map(r => {
+    const isSel = r.monthIdx===selectedCPDMonth;
+    const var_c = r.actual_c!=null ? (r.actual_c - r.target_c).toFixed(2) : null;
+    const varClass = var_c!=null ? (parseFloat(var_c)>=0?'cpd-status-above':'cpd-status-below') : '';
+    const varText = var_c!=null ? (parseFloat(var_c)>=0?'+':'')+var_c+'%' : '-';
+    const status = r.actual_c!=null ?
+      (parseFloat(var_c)>=-5?(parseFloat(var_c)>=0?'<span class="cpd-status-above">✅ ผ่านเป้า</span>':'<span class="cpd-status-on">⚠️ ใกล้เป้า</span>'):'<span class="cpd-status-below">❌ ต่ำกว่าเป้า</span>') :
+      '<span style="color:var(--text-light);font-size:12px;">⏳ รอข้อมูล</span>';
+
+    return `<tr style="${isSel?'background:#EEF3FC;font-weight:700;':''}">
+      <td><strong>${r.month}</strong></td>
+      <td class="num">${r.target_m.toFixed(2)}%</td>
+      <td class="num">${r.target_c.toFixed(2)}%</td>
+      <td class="num">${r.actual_m!=null?r.actual_m.toFixed(2)+'%':'<span style="color:var(--text-light)">-</span>'}</td>
+      <td class="num">${r.actual_c!=null?r.actual_c.toFixed(2)+'%':'<span style="color:var(--text-light)">-</span>'}</td>
+      <td class="num"><span class="${varClass}">${varText}</span></td>
+      <td>${status}</td>
+      <td style="font-size:11px;color:var(--text-sub)">${r.note||''}</td>
+    </tr>`;
+  }).join('');
+
+  const totalTarget = cpdData[11].target_c;
+  const lastActualVal = lastActual ? lastActual.actual_c : null;
+  tfoot.innerHTML = `<tr>
+    <td><strong>สรุป</strong></td>
+    <td class="num" style="text-align:right">-</td>
+    <td class="num" style="text-align:right">${totalTarget.toFixed(2)}%</td>
+    <td class="num" style="text-align:right">-</td>
+    <td class="num" style="text-align:right">${lastActualVal!=null?lastActualVal.toFixed(2)+'%':'-'}</td>
+    <td class="num" style="text-align:right">${lastActualVal!=null?((lastActualVal-lastActual.target_c)>=0?'<span class="cpd-status-above">+':' <span class="cpd-status-below">')+(lastActualVal-lastActual.target_c).toFixed(2)+'%</span>':'-'}</td>
+    <td colspan="2"></td>
+  </tr>`;
+}
+
+function renderCPDChart() {
+  if(cpdChartInstance) { cpdChartInstance.destroy(); cpdChartInstance=null; }
+  const ctx = document.getElementById('chartCPD').getContext('2d');
+  const labels = cpdData.map(r=>r.month);
+  const targetCum = cpdData.map(r=>r.target_c);
+  const actualCum = cpdData.map(r=>r.actual_c);
+  const actualMonth = cpdData.map(r=>r.actual_m);
+
+  cpdChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'เป้าหมายสะสม (CPD) %',
+          data: targetCum,
+          borderColor: '#C9A227', backgroundColor: 'rgba(201,162,39,0.08)',
+          borderWidth: 2.5, borderDash: [6,3],
+          pointRadius: 5, pointBackgroundColor: '#C9A227',
+          tension: 0.3, fill: false, yAxisID: 'y'
+        },
+        {
+          label: 'เบิกจ่ายจริงสะสม %',
+          data: actualCum,
+          borderColor: '#0D2B5E', backgroundColor: 'rgba(13,43,94,0.08)',
+          borderWidth: 3,
+          pointRadius: 6, pointBackgroundColor: '#0D2B5E',
+          tension: 0.3, fill: true, yAxisID: 'y'
+        },
+        {
+          label: 'เบิกจ่ายจริงรายเดือน %',
+          data: actualMonth,
+          borderColor: '#1B7A8C', backgroundColor: 'rgba(27,122,140,0.15)',
+          borderWidth: 2,
+          pointRadius: 4, pointBackgroundColor: '#1B7A8C',
+          tension: 0.3, fill: true, yAxisID: 'y', type: 'bar'
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels:{ font:{family:'Sarabun',size:12} } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y!=null?ctx.parsed.y.toFixed(2)+'%':'ไม่มีข้อมูล'}`
+          }
+        },
+        annotation: {}
+      },
+      scales: {
+        x: { ticks:{ font:{family:'Sarabun',size:12} }, grid:{display:false} },
+        y: {
+          min: 0, max: 110,
+          ticks: { font:{family:'Sarabun',size:12}, callback: v=>v+'%' },
+          grid: { color:'#EBF0F8' }
+        }
+      }
+    }
+  });
+
+  // Highlight selected month
+  const sel = selectedCPDMonth;
+  cpdChartInstance.data.datasets.forEach(ds => {
+    if(!ds.pointRadius) return;
+    ds.pointRadius = cpdData.map((r,i)=>i===sel?10:5);
+    ds.pointBorderColor = cpdData.map((r,i)=>i===sel?'#fff':'rgba(0,0,0,0)');
+    ds.pointBorderWidth = cpdData.map((r,i)=>i===sel?2:0);
+  });
+  cpdChartInstance.update();
+}
+
+async function loadCPDFromSheet() {
+  if(!config.apiKey){ showAlert('⚙️ กรุณาตั้งค่า API Key ก่อน', 'error'); return; }
+  const sheetName = config.sheetCpd || 'plan_cpd';
+  document.getElementById('cpd-loading').style.display='block';
+  document.getElementById('cpd-sheet-status').textContent='กำลังโหลด...';
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(sheetName)}!A1:H20?key=${config.apiKey}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    document.getElementById('cpd-loading').style.display='none';
+    if(data.error) throw new Error(data.error.message);
+    const rows = (data.values||[]).slice(1);
+    if(!rows.length){ showAlert('⚠️ ไม่พบข้อมูลใน Sheet '+sheetName,'error'); return; }
+
+    // Parse: col0=month, col1=target_m%, col2=target_c%, col3=actual_m%, col4=actual_c%, col5=note
+    rows.forEach(r=>{
+      const monthStr = (r[0]||'').trim();
+      const idx = MONTHS_TH.indexOf(monthStr);
+      if(idx<0) return;
+      cpdData[idx] = {
+        ...cpdData[idx],
+        target_m: parseFloat(r[1])||0,
+        target_c: parseFloat(r[2])||0,
+        actual_m: r[3]!=null&&r[3]!==''?parseFloat(r[3]):null,
+        actual_c: r[4]!=null&&r[4]!==''?parseFloat(r[4]):null,
+        note: r[5]||''
+      };
+    });
+
+    document.getElementById('cpd-sheet-status').textContent='✅ โหลดจาก Google Sheet สำเร็จ ('+rows.length+' เดือน)';
+    renderCPDMonthChips(); renderCPDTable(); renderCPDChart();
+    showAlert('✅ โหลดข้อมูลตัวชี้วัด CPD จาก Sheet "'+sheetName+'" สำเร็จ!','success');
+  } catch(e) {
+    document.getElementById('cpd-loading').style.display='none';
+    document.getElementById('cpd-sheet-status').textContent='❌ โหลดไม่สำเร็จ';
+    showAlert('❌ โหลด CPD ไม่สำเร็จ: '+e.message,'error');
+  }
+}
+
+function exportCPDReport() {
+  const headers=['เดือน','เป้าหมายรายเดือน%','เป้าหมายสะสม%','เบิกจ่ายรายเดือน%','เบิกจ่ายสะสม%','ผลต่างสะสม','หมายเหตุ'];
+  const rows = cpdData.map(r=>[
+    r.month, r.target_m.toFixed(2), r.target_c.toFixed(2),
+    r.actual_m!=null?r.actual_m.toFixed(2):'',
+    r.actual_c!=null?r.actual_c.toFixed(2):'',
+    r.actual_c!=null?(r.actual_c-r.target_c).toFixed(2):'',
+    r.note
+  ]);
+  let csv = '\uFEFF'+[headers,...rows].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download='CPD_Report_'+config.year+'.csv'; a.click();
+}
+
+// ============================================================
+// ORG EDIT
+// ============================================================
+function openOrgEdit() {
+  document.getElementById('org-name-input').value = config.orgName||'';
+  document.getElementById('org-year-input').value = config.year||'';
+  document.getElementById('modal-org').classList.add('open');
+}
+function closeOrgEdit() { document.getElementById('modal-org').classList.remove('open'); }
+function saveOrgEdit() {
+  config.orgName = document.getElementById('org-name-input').value.trim();
+  config.year = document.getElementById('org-year-input').value.trim();
+  try { localStorage.setItem('budget_config', JSON.stringify(config)); } catch(e){}
+  // Sync to settings page
+  document.getElementById('cfg-org-name').value = config.orgName;
+  document.getElementById('cfg-year').value = config.year;
+  applyOrgToHeader();
+  closeOrgEdit();
+  showAlert('✅ อัปเดตชื่อหน่วยงานและปีงบประมาณแล้ว','success');
+}
+
+// ============================================================
+// IMPORT DATA
+// ============================================================
+let importRows = [];
+
+function openImportModal() {
+  document.getElementById('modal-import').classList.add('open');
+  document.getElementById('import-sheet-name-label').textContent = config.sheetRead||'Data_Entry';
+}
+function closeImport() {
+  document.getElementById('modal-import').classList.remove('open');
+  importRows=[]; document.getElementById('btn-confirm-import').disabled=true;
+  document.getElementById('import-count-label').textContent='';
+  document.getElementById('import-preview').style.display='none';
+  document.getElementById('import-alert').innerHTML='';
+  document.getElementById('pull-preview').style.display='none';
+  document.getElementById('paste-preview').style.display='none';
+  document.getElementById('file-input').value='';
+  const fn = document.getElementById('file-name-display');
+  if(fn){ fn.style.display='none'; fn.innerHTML=''; }
+}
+
+function toggleImportMode() {
+  const m = document.getElementById('import-mode').value;
+  document.getElementById('import-csv-area').style.display = m==='csv'?'block':'none';
+  document.getElementById('import-sheet-area').style.display = m==='sheet'?'block':'none';
+  document.getElementById('import-paste-area').style.display = m==='manual'?'block':'none';
+}
+
+function handleFileSelect(e) { if(e.target.files[0]) processFile(e.target.files[0]); }
+function handleFileDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  if(e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
+}
+
+// ── Main dispatcher: xlsx vs csv ────────────────────────────────────────────
+function processFile(file) {
+  const name = file.name.toLowerCase();
+  const dispEl = document.getElementById('file-name-display');
+  dispEl.style.display = 'block';
+  dispEl.innerHTML = `📄 <strong>${file.name}</strong> (${(file.size/1024).toFixed(1)} KB) กำลังอ่าน...`;
+
+  if(name.endsWith('.xlsx') || name.endsWith('.xls')) {
+    processXLSXFile(file);
+  } else {
+    processCSVFile(file);
+  }
+}
+
+// ── XLSX via SheetJS ─────────────────────────────────────────────────────────
+function processXLSXFile(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      // Check SheetJS loaded
+      if(typeof XLSX === 'undefined') {
+        document.getElementById('import-alert').innerHTML =
+          '<div class="alert alert-error">❌ ไม่สามารถโหลด SheetJS library ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต</div>';
+        return;
+      }
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array', cellDates: true });
+
+      // Look for Data_Entry sheet first, else use first sheet
+      const sheetName = wb.SheetNames.includes('Data_Entry')
+        ? 'Data_Entry'
+        : wb.SheetNames[0];
+
+      document.getElementById('file-name-display').innerHTML =
+        `📄 <strong>${file.name}</strong> &nbsp;|&nbsp; ชีต: <strong>${sheetName}</strong> &nbsp;|&nbsp; พบ ${wb.SheetNames.length} แผ่น: ${wb.SheetNames.join(', ')}`;
+
+      const ws = wb.Sheets[sheetName];
+      // header:1 → array of arrays; defval:'' fills blanks
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      parseXLSXRows(rows, sheetName);
+    } catch(err) {
+      console.error(err);
+      document.getElementById('import-alert').innerHTML =
+        `<div class="alert alert-error">❌ อ่านไฟล์ Excel ไม่สำเร็จ: ${err.message}</div>`;
+      document.getElementById('file-name-display').innerHTML =
+        `❌ อ่านไม่สำเร็จ: ${file.name}`;
+    }
+  };
+  reader.onerror = () => {
+    document.getElementById('import-alert').innerHTML =
+      '<div class="alert alert-error">❌ ไม่สามารถอ่านไฟล์ได้</div>';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── Parse xlsx rows ──────────────────────────────────────────────────────────
+// Data_Entry_Template column map (0-indexed):
+//  0=Record_ID  1=วันที่  2=ปีงบ  3=ประเภทงบ  4=Budget_Type(ID)
+//  5=Plan_Type  6=Subplan  7=Activity  8=Master_Unit
+//  9=งบประมาณ  10=โอนแล้ว  11=เบิกจ่าย  12=คงเหลือ  13=สถานะ
+function parseXLSXRows(rows, sheetName) {
+  importRows = [];
+  const importYear = document.getElementById('import-year').value;
+
+  // Find header row — look for row containing 'Activity' or 'งบประมาณ'
+  let headerRowIdx = -1;
+  for(let i = 0; i < Math.min(rows.length, 10); i++) {
+    const row = rows[i];
+    const rowStr = row.map(c => String(c||'').trim()).join('|');
+    if(rowStr.includes('Activity') || rowStr.includes('งบประมาณ') || rowStr.includes('Record_ID')) {
+      headerRowIdx = i;
+      break;
+    }
+  }
+
+  // Build column index map from header
+  let colMap = {
+    id:0, date:1, year:2, budgettype:3, budgettypeId:4,
+    plan:5, subplan:6, activity:7, unit:8,
+    budget:9, transfer:10, disbursed:11, remain:12, status:13
+  };
+
+  if(headerRowIdx >= 0) {
+    const hrow = rows[headerRowIdx].map(c => String(c||'').toLowerCase().trim());
+    const findCol = (...keys) => {
+      for(const k of keys) {
+        const idx = hrow.findIndex(h => h.includes(k));
+        if(idx >= 0) return idx;
+      }
+      return -1;
+    };
+    colMap = {
+      id:       findCol('record_id','id'),
+      date:     findCol('วันที่','date'),
+      year:     findCol('ปีงบ','year'),
+      budgettype: findCol('ประเภทงบ','budget_type'),
+      budgettypeId: findCol('budget_type'),
+      plan:     findCol('plan_type','แผนงาน'),
+      subplan:  findCol('subplan','แผนย่อย'),
+      activity: findCol('activity','กิจกรรม'),
+      unit:     findCol('master_unit','หน่วยงาน'),
+      budget:   findCol('งบประมาณ','budget'),
+      transfer: findCol('โอน','transfer'),
+      disbursed: findCol('เบิกจ่าย','disbursed'),
+      remain:   findCol('คงเหลือ','remain'),
+      status:   findCol('สถานะ','status')
+    };
+  }
+
+  const dataStart = headerRowIdx >= 0 ? headerRowIdx + 1 : 0;
+
+  for(let i = dataStart; i < rows.length; i++) {
+    const r = rows[i];
+    if(!r || r.length < 4) continue;
+
+    const getVal = (idx) => idx >= 0 && idx < r.length ? r[idx] : '';
+    const getNum = (idx) => {
+      const v = getVal(idx);
+      if(v === null || v === '' || v === undefined) return 0;
+      return parseFloat(String(v).replace(/[,฿\s]/g,'')) || 0;
+    };
+    const getStr = (idx) => String(getVal(idx)||'').trim();
+
+    const activity = getStr(colMap.activity);
+    const budget = getNum(colMap.budget);
+    const disbursed = getNum(colMap.disbursed);
+
+    // Skip empty rows, header-like rows, summary rows
+    if(!activity && budget === 0) continue;
+    if(!budget && !disbursed) continue;
+    const skipWords = ['record_id','ที่','ประเภทแผนงาน','สรุป','รวม','หัว','header'];
+    if(skipWords.some(w => activity.toLowerCase().includes(w))) continue;
+
+    // Parse date safely
+    let dateStr = new Date().toISOString().split('T')[0];
+    const rawDate = getVal(colMap.date);
+    if(rawDate instanceof Date) {
+      dateStr = rawDate.toISOString().split('T')[0];
+    } else if(rawDate) {
+      const d = new Date(rawDate);
+      if(!isNaN(d)) dateStr = d.toISOString().split('T')[0];
+    }
+
+    const yr = getStr(colMap.year) || importYear;
+    const budgettype = getStr(colMap.budgettype) || getStr(colMap.budgettypeId) || 'งบดำเนินงาน';
+    const plan = getStr(colMap.plan) || 'ไม่ระบุ';
+    const unit = getStr(colMap.unit) || 'ไม่ระบุ';
+    const status = getStr(colMap.status) || (disbursed>=budget&&budget>0?'เบิกจ่ายแล้ว':(disbursed>0?'เบิกจ่ายบางส่วน':'ยังไม่เบิกจ่าย'));
+
+    importRows.push({
+      id: allRecords.length + importRows.length + 1,
+      date: dateStr,
+      year: yr || importYear,
+      activity: activity.substring(0, 120),
+      plan, budgettype, unit,
+      budget, disbursed,
+      remain: budget - disbursed,
+      transfer: getNum(colMap.transfer),
+      pct: budget > 0 ? +((disbursed/budget)*100).toFixed(2) : 0,
+      status
+    });
+  }
+
+  document.getElementById('import-alert').innerHTML = '';
+  if(!importRows.length) {
+    document.getElementById('import-alert').innerHTML =
+      `<div class="alert alert-error">❌ ไม่พบข้อมูลในชีต "<strong>${sheetName}</strong>"<br>
+       ตรวจสอบว่าใช้ไฟล์ Data_Entry_Template.xlsx และมีข้อมูลในแถวที่ 6 เป็นต้นไป</div>`;
+    return;
+  }
+  showImportPreview();
+}
+
+// ── CSV ──────────────────────────────────────────────────────────────────────
+function processCSVFile(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    let text;
+    try { text = new TextDecoder('tis-620').decode(e.target.result); }
+    catch(ex) { text = new TextDecoder('utf-8').decode(e.target.result); }
+    document.getElementById('file-name-display').innerHTML =
+      `📄 <strong>${file.name}</strong> (CSV)`;
+    parseImportCSV(text);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseImportCSV(text) {
+  const lines = text.split('\n').filter(l => l.trim());
+  if(!lines.length) {
+    document.getElementById('import-alert').innerHTML = '<div class="alert alert-error">❌ ไฟล์ว่างเปล่า</div>';
+    return;
+  }
+  importRows = [];
+  const importYear = document.getElementById('import-year').value;
+
+  // Find header row
+  let headerIdx = -1;
+  let colMap = null;
+  for(let i = 0; i < Math.min(lines.length, 10); i++) {
+    const cols = parseCsvLine(lines[i]);
+    const lower = cols.map(c => c.toLowerCase());
+    if(lower.some(c => c.includes('activity') || c.includes('งบประมาณ') || c.includes('record_id'))) {
+      headerIdx = i;
+      // Map columns
+      const find = (...keys) => { for(const k of keys){ const idx=lower.findIndex(h=>h.includes(k)); if(idx>=0)return idx; } return -1; };
+      colMap = {
+        date: find('วันที่','date'),
+        year: find('ปีงบ','year'),
+        budgettype: find('ประเภทงบ','budget_type'),
+        plan: find('plan_type','แผนงาน'),
+        activity: find('activity','กิจกรรม'),
+        unit: find('master_unit','หน่วยงาน'),
+        budget: find('งบประมาณ'),
+        transfer: find('โอน','transfer'),
+        disbursed: find('เบิกจ่าย','disbursed'),
+        remain: find('คงเหลือ','remain'),
+        status: find('สถานะ','status')
+      };
+      break;
+    }
+  }
+
+  const dataStart = headerIdx >= 0 ? headerIdx + 1 : 0;
+  // fallback col positions (original CSV from ผลการเบิกจ่าย format)
+  const fb = { budgettype:3, plan:5, activity:7, unit:8, budget:9, disbursed:11, remain:12, status:13 };
+
+  for(let i = dataStart; i < lines.length; i++) {
+    const cols = parseCsvLine(lines[i]);
+    if(cols.length < 4) continue;
+    const g = (k) => {
+      const idx = colMap ? colMap[k] : fb[k];
+      return idx >= 0 ? (cols[idx]||'').trim() : '';
+    };
+    const gn = (k) => parseFloat(g(k).replace(/[,฿\s]/g,'')) || 0;
+
+    const activity = g('activity') || cols[1] || cols[0];
+    const budget = gn('budget') || parseFloat((cols[2]||'').replace(/[,฿\s]/g,'')) || 0;
+    const disbursed = gn('disbursed') || parseFloat((cols[3]||'').replace(/[,฿\s]/g,'')) || 0;
+
+    if(!activity || (!budget && !disbursed)) continue;
+    const skipWords = ['ที่','ประเภท','สรุป','รวม','record','header','plan_type','budget_type'];
+    if(skipWords.some(w => activity.toLowerCase().includes(w))) continue;
+
+    const budgettype = g('budgettype') || 'งบดำเนินงาน';
+    const plan = g('plan') || 'ไม่ระบุ';
+    const unit = g('unit') || 'ไม่ระบุ';
+    const status = g('status') || (disbursed>=budget&&budget>0?'เบิกจ่ายแล้ว':(disbursed>0?'เบิกจ่ายบางส่วน':'ยังไม่เบิกจ่าย'));
+    const yr = (g('year') || importYear).replace(/\D/g,'') || importYear;
+
+    importRows.push({
+      id: allRecords.length + importRows.length + 1,
+      date: new Date().toISOString().split('T')[0],
+      year: yr,
+      activity: activity.substring(0, 120),
+      plan, budgettype, unit,
+      budget, disbursed, remain: budget - disbursed,
+      transfer: gn('transfer'),
+      pct: budget > 0 ? +((disbursed/budget)*100).toFixed(2) : 0,
+      status
+    });
+  }
+  document.getElementById('import-alert').innerHTML = '';
+  if(!importRows.length) {
+    document.getElementById('import-alert').innerHTML =
+      '<div class="alert alert-error">❌ ไม่พบรายการที่มีข้อมูลงบประมาณ กรุณาตรวจสอบรูปแบบไฟล์</div>';
+    return;
+  }
+  showImportPreview();
+}
+
+// Parse a single CSV line respecting quoted fields
+function parseCsvLine(line) {
+  const result = []; let cur = ''; let inQ = false;
+  for(let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if(c === '"') { inQ = !inQ; }
+    else if(c === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+    else { cur += c; }
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+async function pullFromSheet() {
+  if(!config.apiKey){ document.getElementById('import-alert').innerHTML='<div class="alert alert-error">❌ ยังไม่ได้ตั้งค่า API Key</div>'; return; }
+  document.getElementById('import-alert').innerHTML='<div class="alert alert-info">⏳ กำลังดึงข้อมูล...</div>';
+  try {
+    const url=`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(config.sheetRead)}!A1:N300?key=${config.apiKey}`;
+    const res=await fetch(url); const data=await res.json();
+    if(data.error) throw new Error(data.error.message);
+    const rows=(data.values||[]).slice(1).filter(r=>r[9]&&r[9]!=='');
+    const importYear=document.getElementById('import-year').value;
+    importRows = rows.map((r,i)=>({
+      id:allRecords.length+i+1, date:r[1]||new Date().toISOString().split('T')[0],
+      year:r[2]||importYear, activity:r[7]||'รายการ'+(i+1),
+      plan:r[5]||'', budgettype:r[3]||'งบดำเนินงาน', unit:r[8]||'',
+      budget:parseFloat((r[9]||'').replace(/,/g,''))||0,
+      disbursed:parseFloat((r[11]||'').replace(/,/g,''))||0,
+      remain:parseFloat((r[12]||'').replace(/,/g,''))||0,
+      pct:0, status:r[13]||'ยังไม่เบิกจ่าย'
+    })).filter(r=>r.budget>0);
+    importRows.forEach(r=>{ r.pct=r.budget>0?+((r.disbursed/r.budget)*100).toFixed(2):0; });
+    document.getElementById('import-alert').innerHTML='';
+    showImportPreview(); showPullPreview();
+  } catch(e) {
+    document.getElementById('import-alert').innerHTML=`<div class="alert alert-error">❌ ${e.message}</div>`;
+  }
+}
+
+function showPullPreview() {
+  const wrap=document.getElementById('pull-preview');
+  if(!importRows.length){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  wrap.innerHTML=`<div style="font-size:13px;color:var(--text-sub);margin-bottom:8px;">พบ <strong>${importRows.length}</strong> รายการ</div>
+    <table><thead><tr><th>รายการ</th><th>งบประมาณ</th><th>เบิกจ่าย</th><th>สถานะ</th></tr></thead>
+    <tbody>${importRows.slice(0,5).map(r=>`<tr><td>${r.activity.substring(0,40)}</td><td class="num">${fmt(r.budget)}</td><td class="num">${fmt(r.disbursed)}</td><td>${r.status}</td></tr>`).join('')}
+    ${importRows.length>5?`<tr><td colspan="4" style="text-align:center;color:var(--text-sub)">... และอีก ${importRows.length-5} รายการ</td></tr>`:''}
+    </tbody></table>`;
+  document.getElementById('btn-confirm-import').disabled=false;
+  document.getElementById('import-count-label').textContent='พร้อมนำเข้า '+importRows.length+' รายการ';
+}
+
+function showImportPreview() {
+  const wrap = document.getElementById('import-preview');
+  if(!importRows.length){
+    document.getElementById('import-alert').innerHTML='<div class="alert alert-error">❌ ไม่พบรายการที่มีข้อมูลงบประมาณ กรุณาตรวจสอบรูปแบบไฟล์</div>';
+    wrap.style.display='none'; return;
+  }
+  wrap.style.display='block';
+  wrap.innerHTML=`<div style="font-size:13px;color:var(--text-sub);margin-bottom:8px;">พบ <strong>${importRows.length}</strong> รายการที่จะนำเข้า</div>
+    <table><thead><tr><th>รายการ</th><th>ประเภทงบ</th><th>งบประมาณ</th><th>เบิกจ่าย</th><th>ร้อยละ</th></tr></thead>
+    <tbody>${importRows.slice(0,8).map(r=>`<tr><td title="${r.activity}">${r.activity.substring(0,35)}...</td><td>${r.budgettype}</td><td>${fmt(r.budget)}</td><td>${fmt(r.disbursed)}</td><td>${r.pct}%</td></tr>`).join('')}
+    ${importRows.length>8?`<tr><td colspan="5" style="text-align:center;color:var(--text-sub)">... และอีก ${importRows.length-8} รายการ</td></tr>`:''}
+    </tbody></table>`;
+  document.getElementById('btn-confirm-import').disabled=false;
+  document.getElementById('import-count-label').textContent='พร้อมนำเข้า '+importRows.length+' รายการ';
+}
+
+function parsePaste() {
+  const text=document.getElementById('paste-input').value.trim();
+  if(!text) return;
+  const importYear=document.getElementById('import-year').value;
+  importRows=[];
+  text.split('\n').forEach((line,i)=>{
+    const cols=line.split('\t').map(c=>c.trim());
+    if(cols.length<4) return;
+    const budget=parseFloat(cols[2]?.replace(/,/g,'')||0);
+    const disbursed=parseFloat(cols[3]?.replace(/,/g,'')||0);
+    if(!budget) return;
+    importRows.push({
+      id:allRecords.length+i+1, date:new Date().toISOString().split('T')[0], year:importYear,
+      activity:cols[1]||cols[0]||'รายการ'+(i+1),
+      plan:'นำเข้า', budgettype:cols[6]||'งบดำเนินงาน', unit:cols[5]||'-',
+      budget, disbursed, remain:budget-disbursed,
+      pct:budget>0?+((disbursed/budget)*100).toFixed(2):0,
+      status:disbursed>=budget?'เบิกจ่ายแล้ว':(disbursed>0?'เบิกจ่ายบางส่วน':'ยังไม่เบิกจ่าย')
+    });
+  });
+  showImportPreview();
+  document.getElementById('paste-preview').style.display='none';
+}
+
+function confirmImport() {
+  if(!importRows.length) return;
+  const yr = document.getElementById('import-year').value;
+  // Remove existing records for that year if any
+  const existing = allRecords.filter(r=>r.year===yr).length;
+  if(existing>0){
+    if(!confirm(`มีข้อมูลปี ${yr} อยู่แล้ว ${existing} รายการ\nต้องการแทนที่ทั้งหมดหรือเพิ่มเติม?\n\nกด OK = เพิ่มเติม | Cancel = ยกเลิก`)) return;
+  }
+  allRecords = [...importRows, ...allRecords];
+  filteredRecords = [...allRecords];
+  renderDetailTable();
+  closeImport();
+  showAlert(`✅ นำเข้าข้อมูลปี ${yr} สำเร็จ! รวม ${importRows.length} รายการ`, 'success');
+}
+
+// ============================================================
+// UPDATE MASTER LIST PREVIEW IN SETTINGS
+// ============================================================
+function updateMasterListPreview() {
+  const btList = document.getElementById('bt-list');
+  const ptList = document.getElementById('pt-list');
+  if(btList){
+    document.getElementById('bt-count').textContent = masterBudgetTypes.length;
+    btList.innerHTML = masterBudgetTypes.map(t=>`<div>▸ <strong>${t.id}</strong> ${t.name}</div>`).join('');
+  }
+  if(ptList){
+    document.getElementById('pt-count').textContent = masterPlanTypes.length;
+    ptList.innerHTML = masterPlanTypes.map(t=>`<div>▸ <strong>${t.id}</strong> ${t.name}</div>`).join('');
+  }
+}
+
+
+// Set today date
+document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+
+// ============================================================
+// DAILY PAYMENT DATA + FUNCTIONS
+// ============================================================
+let dailyRecords = [];  // { id, date, description, category, budgettype, plan, unit, requester, amount, ref, status, note }
+let filteredDaily = [];
+let dailyPage = 1;
+const dailyPerPage = 15;
+let dailySortField = 'date'; let dailySortDir = -1;
+let dailyChartInstance = null; let dailyCatChartInstance = null;
+
+const CAT_COLORS = {
+  'ค่าพาหนะ':'#0D2B5E','ค่าวัสดุ':'#C9A227','ค่าใช้สอย':'#1B7A8C',
+  'ค่าประชุม':'#D35400','ค่าตอบแทน':'#1A7A4A','อื่นๆ':'#7F3FBF'
+};
+const CAT_CSS = {
+  'ค่าพาหนะ':'cat-travel','ค่าวัสดุ':'cat-supply','ค่าใช้สอย':'cat-service',
+  'ค่าประชุม':'cat-meeting','ค่าตอบแทน':'cat-other','อื่นๆ':'cat-other'
+};
+
+function renderDailyKPIs() {
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const monthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const yearStr = String(now.getFullYear());
+
+  const todayRecs  = dailyRecords.filter(r=>r.date===todayStr&&r.status!=='ยกเลิก');
+  const monthRecs  = dailyRecords.filter(r=>r.date.startsWith(monthStr)&&r.status!=='ยกเลิก');
+  const yearRecs   = dailyRecords.filter(r=>r.date.startsWith(yearStr)&&r.status!=='ยกเลิก');
+  const pendRecs   = dailyRecords.filter(r=>r.status==='รออนุมัติ');
+
+  document.getElementById('dk-today').textContent = '฿'+fmt(todayRecs.reduce((s,r)=>s+r.amount,0));
+  document.getElementById('dk-today-count').textContent = todayRecs.length+' รายการ';
+  document.getElementById('dk-month').textContent = '฿'+fmt(monthRecs.reduce((s,r)=>s+r.amount,0));
+  document.getElementById('dk-month-count').textContent = monthRecs.length+' รายการ';
+  document.getElementById('dk-year').textContent = '฿'+fmt(yearRecs.reduce((s,r)=>s+r.amount,0));
+  document.getElementById('dk-year-count').textContent = yearRecs.length+' รายการ';
+  document.getElementById('dk-pending').textContent = pendRecs.length;
+
+  // Top category
+  const catTotals = {};
+  yearRecs.forEach(r=>{ catTotals[r.category]=(catTotals[r.category]||0)+r.amount; });
+  const topCat = Object.entries(catTotals).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('dk-top-cat').textContent = topCat ? topCat[0] : '-';
+  document.getElementById('dk-top-cat-amt').textContent = topCat ? '฿'+fmt(topCat[1]) : '-';
+}
+
+function renderDailyTable() {
+  filteredDaily = [...dailyRecords];
+  applyDailyFilters();
+}
+
+function applyDailyFilters() {
+  const q  = (document.getElementById('daily-search')||{value:''}).value.toLowerCase();
+  const df = (document.getElementById('daily-from')||{value:''}).value;
+  const dt = (document.getElementById('daily-to')||{value:''}).value;
+  const fc = (document.getElementById('daily-cat-filter')||{value:''}).value;
+  const fs = (document.getElementById('daily-status-filter')||{value:''}).value;
+
+  filteredDaily = dailyRecords.filter(r=>{
+    if(q && !r.description.toLowerCase().includes(q) && !(r.requester||'').toLowerCase().includes(q)) return false;
+    if(df && r.date < df) return false;
+    if(dt && r.date > dt) return false;
+    if(fc && r.category !== fc) return false;
+    if(fs && r.status !== fs) return false;
+    return true;
+  });
+
+  // Sort
+  filteredDaily.sort((a,b)=>{
+    const av=a[dailySortField], bv=b[dailySortField];
+    if(typeof av==='string') return av.localeCompare(bv,'th')*dailySortDir;
+    return ((av||0)-(bv||0))*dailySortDir;
+  });
+
+  dailyPage = 1;
+  renderDailyTableBody();
+}
+
+function renderDailyTableBody() {
+  const tbody = document.getElementById('daily-tbody');
+  const tfoot = document.getElementById('daily-tfoot');
+  const start = (dailyPage-1)*dailyPerPage;
+  const slice = filteredDaily.slice(start, start+dailyPerPage);
+  const totAmt = filteredDaily.filter(r=>r.status!=='ยกเลิก').reduce((s,r)=>s+r.amount,0);
+
+  if(!tbody) return;
+  tbody.innerHTML = slice.map((r,i) => `
+    <tr>
+      <td style="text-align:center;font-size:12px;color:var(--text-sub);">${r.id}</td>
+      <td style="white-space:nowrap;">${r.date}</td>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.description}">${r.description}</td>
+      <td><span class="daily-cat-badge ${CAT_CSS[r.category]||'cat-other'}">${r.category}</span></td>
+      <td style="font-size:12px;">${r.budgettype||'-'}</td>
+      <td style="font-size:12px;color:var(--text-sub);">${r.unit||'-'}</td>
+      <td style="font-size:12px;">${r.requester||'-'}</td>
+      <td class="num" style="font-weight:700;color:var(--navy);">฿${fmt(r.amount)}</td>
+      <td>${statusBadge(r.status==='อนุมัติแล้ว'?'เบิกจ่ายแล้ว':(r.status==='รออนุมัติ'?'เบิกจ่ายบางส่วน':'ยังไม่เบิกจ่าย'))}</td>
+      <td>
+        <div class="gap-actions">
+          <button class="icon-btn" onclick="openEditDaily(${r.id})" title="แก้ไข">✏️</button>
+          <button class="icon-btn del" onclick="deleteDailyRecord(${r.id})" title="ลบ">🗑️</button>
+        </div>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--text-sub)">ยังไม่มีข้อมูล — กด ➕ เพิ่มรายจ่าย</td></tr>';
+
+  if(tfoot) tfoot.innerHTML = `<tr>
+    <td colspan="7" style="font-weight:800;">รวม ${filteredDaily.length} รายการ (${filteredDaily.filter(r=>r.status!=='ยกเลิก').length} อนุมัติ)</td>
+    <td class="num" style="font-weight:800;color:var(--navy);text-align:right;">฿${fmt(totAmt)}</td>
+    <td colspan="2"></td>
+  </tr>`;
+
+  const countEl = document.getElementById('daily-record-count');
+  if(countEl) countEl.textContent = `แสดง ${Math.min(start+1,filteredDaily.length)||0}-${Math.min(start+dailyPerPage,filteredDaily.length)} จาก ${filteredDaily.length}`;
+
+  // Pagination
+  const total = Math.ceil(filteredDaily.length/dailyPerPage);
+  const pg = document.getElementById('daily-pagination');
+  if(pg){
+    if(total<=1){ pg.innerHTML=''; return; }
+    let html = `<button class="page-btn" onclick="goDailyPage(${dailyPage-1})" ${dailyPage===1?'disabled':''}>‹</button>`;
+    for(let i=1;i<=total;i++){
+      if(i===1||i===total||Math.abs(i-dailyPage)<=1)
+        html+=`<button class="page-btn ${i===dailyPage?'active':''}" onclick="goDailyPage(${i})">${i}</button>`;
+      else if(Math.abs(i-dailyPage)===2) html+=`<span style="padding:5px 4px;color:var(--text-sub)">…</span>`;
+    }
+    html+=`<button class="page-btn" onclick="goDailyPage(${dailyPage+1})" ${dailyPage===total?'disabled':''}>›</button>`;
+    pg.innerHTML = html;
+  }
+}
+
+function goDailyPage(p){
+  const total=Math.ceil(filteredDaily.length/dailyPerPage);
+  if(p<1||p>total)return; dailyPage=p; renderDailyTableBody();
+}
+
+function filterDailyTable(){ applyDailyFilters(); }
+function clearDailyFilters(){
+  ['daily-search','daily-from','daily-to'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; });
+  ['daily-cat-filter','daily-status-filter'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; });
+  applyDailyFilters();
+}
+
+function sortDaily(field){
+  if(dailySortField===field) dailySortDir*=-1; else{ dailySortField=field; dailySortDir=1; }
+  applyDailyFilters();
+}
+
+function renderDailyCharts(){
+  // Bar chart: last 30 days
+  const now = new Date();
+  const days = []; const amounts = [];
+  for(let i=29;i>=0;i--){
+    const d = new Date(now); d.setDate(d.getDate()-i);
+    const ds = d.toISOString().split('T')[0];
+    days.push(ds.slice(5));
+    amounts.push(dailyRecords.filter(r=>r.date===ds&&r.status!=='ยกเลิก').reduce((s,r)=>s+r.amount,0));
+  }
+  if(dailyChartInstance){ dailyChartInstance.destroy(); dailyChartInstance=null; }
+  const c1 = document.getElementById('chartDaily');
+  if(c1){
+    dailyChartInstance = new Chart(c1.getContext('2d'),{
+      type:'bar', data:{
+        labels:days,
+        datasets:[{label:'รายจ่าย (บาท)',data:amounts,backgroundColor:'rgba(13,43,94,0.7)',borderColor:'#0D2B5E',borderWidth:1,borderRadius:3}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'฿'+fmt(ctx.parsed.y)}}},
+        scales:{x:{ticks:{font:{family:'Sarabun',size:10},maxTicksLimit:10},grid:{display:false}},
+                y:{ticks:{font:{family:'Sarabun',size:10},callback:v=>'฿'+(v/1000).toFixed(0)+'K'},grid:{color:'#EBF0F8'}}}}
+    });
+  }
+  // Category donut
+  const catMap = {}; dailyRecords.filter(r=>r.status!=='ยกเลิก').forEach(r=>{ catMap[r.category]=(catMap[r.category]||0)+r.amount; });
+  if(dailyCatChartInstance){ dailyCatChartInstance.destroy(); dailyCatChartInstance=null; }
+  const c2 = document.getElementById('chartDailyCat');
+  if(c2 && Object.keys(catMap).length){
+    dailyCatChartInstance = new Chart(c2.getContext('2d'),{
+      type:'doughnut', data:{
+        labels:Object.keys(catMap),
+        datasets:[{data:Object.values(catMap),backgroundColor:Object.keys(catMap).map(k=>CAT_COLORS[k]||'#999'),borderWidth:2,borderColor:'#fff'}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{
+        legend:{position:'right',labels:{font:{family:'Sarabun',size:12}}},
+        tooltip:{callbacks:{label:ctx=>'฿'+fmt(ctx.parsed)}}
+      }}
+    });
+  }
+}
+
+// ─ Add/Edit Daily Modal ─
+function openAddDaily(){
+  document.getElementById('dp-edit-id').value='';
+  document.getElementById('daily-modal-title').textContent='➕ เพิ่มรายจ่ายรายวัน';
+  document.getElementById('dp-date').value=new Date().toISOString().split('T')[0];
+  ['dp-description','dp-requester','dp-ref','dp-note','dp-amount'].forEach(id=>{
+    const el=document.getElementById(id); if(el)el.value='';
+  });
+  document.getElementById('dp-status').value='อนุมัติแล้ว';
+  document.getElementById('dp-category').value='';
+  // Populate dropdowns from master
+  populateDailyModalDropdowns();
+  document.getElementById('modal-daily').classList.add('open');
+}
+
+function openEditDaily(id){
+  const r = dailyRecords.find(x=>x.id===id); if(!r)return;
+  document.getElementById('dp-edit-id').value=id;
+  document.getElementById('daily-modal-title').textContent='✏️ แก้ไขรายจ่ายรายวัน';
+  document.getElementById('dp-date').value=r.date;
+  document.getElementById('dp-description').value=r.description;
+  document.getElementById('dp-category').value=r.category;
+  document.getElementById('dp-requester').value=r.requester||'';
+  document.getElementById('dp-amount').value=r.amount;
+  document.getElementById('dp-ref').value=r.ref||'';
+  document.getElementById('dp-status').value=r.status;
+  document.getElementById('dp-note').value=r.note||'';
+  populateDailyModalDropdowns();
+  document.getElementById('dp-budgettype').value=r.budgettype||'';
+  document.getElementById('dp-plan').value=r.plan||'';
+  document.getElementById('dp-unit').value=r.unit||'';
+  document.getElementById('modal-daily').classList.add('open');
+}
+
+function populateDailyModalDropdowns(){
+  const bt=document.getElementById('dp-budgettype');
+  const pt=document.getElementById('dp-plan');
+  const un=document.getElementById('dp-unit');
+  if(bt) bt.innerHTML='<option value="">-- เลือก --</option>'+masterBudgetTypes.map(t=>`<option value="${t.name}">[${t.id}] ${t.name}</option>`).join('');
+  if(pt) pt.innerHTML='<option value="">-- เลือก --</option>'+masterPlanTypes.map(t=>`<option value="${t.name}">[${t.id}] ${t.name}</option>`).join('');
+  const units=['ฝ่ายบริหารทั่วไป','กลุ่มจัดตั้งและส่งเสริมสหกรณ์','กลุ่มส่งเสริมพัฒนาการบริหาร','กลุ่มตรวจการสหกรณ์','กลุ่มส่งเสริมสหกรณ์ 1','กลุ่มส่งเสริมสหกรณ์ 2','กลุ่มส่งเสริมสหกรณ์ 3','กลุ่มส่งเสริมสหกรณ์ 4','กลุ่มส่งเสริมสหกรณ์ 5','กลุ่มส่งเสริมสหกรณ์ 6'];
+  if(un) un.innerHTML='<option value="">-- เลือก --</option>'+units.map(u=>`<option value="${u}">${u}</option>`).join('');
+}
+
+function closeDailyModal(){ document.getElementById('modal-daily').classList.remove('open'); }
+
+function saveDailyRecord(){
+  const desc = document.getElementById('dp-description').value.trim();
+  const amount = parseFloat(document.getElementById('dp-amount').value)||0;
+  const cat = document.getElementById('dp-category').value;
+  if(!desc){ document.getElementById('daily-form-alert').innerHTML='<div class="alert alert-error">❌ กรุณาระบุรายการ</div>'; return; }
+  if(!amount){ document.getElementById('daily-form-alert').innerHTML='<div class="alert alert-error">❌ กรุณาระบุจำนวนเงิน</div>'; return; }
+  if(!cat){ document.getElementById('daily-form-alert').innerHTML='<div class="alert alert-error">❌ กรุณาเลือกหมวดหมู่</div>'; return; }
+
+  const editId = parseInt(document.getElementById('dp-edit-id').value)||0;
+  const rec = {
+    id: editId || (Math.max(...dailyRecords.map(r=>r.id),0)+1),
+    date: document.getElementById('dp-date').value,
+    description: desc, category: cat,
+    budgettype: document.getElementById('dp-budgettype').value,
+    plan: document.getElementById('dp-plan').value,
+    unit: document.getElementById('dp-unit').value,
+    requester: document.getElementById('dp-requester').value,
+    amount, ref: document.getElementById('dp-ref').value,
+    status: document.getElementById('dp-status').value,
+    note: document.getElementById('dp-note').value,
+  };
+
+  if(editId){ const idx=dailyRecords.findIndex(r=>r.id===editId); if(idx>=0)dailyRecords[idx]=rec; }
+  else dailyRecords.unshift(rec);
+
+  try{ localStorage.setItem('daily_records', JSON.stringify(dailyRecords)); }catch(e){}
+  closeDailyModal();
+  renderDailyKPIs(); renderDailyTable(); renderDailyCharts();
+  renderSummary(); // update daily KPI on dashboard too
+  showAlert('✅ บันทึกรายจ่ายรายวันสำเร็จ', 'success');
+  saveDailyToSheet(rec);
+}
+
+function deleteDailyRecord(id){
+  if(!confirm('ลบรายจ่ายนี้?'))return;
+  dailyRecords=dailyRecords.filter(r=>r.id!==id);
+  try{ localStorage.setItem('daily_records',JSON.stringify(dailyRecords)); }catch(e){}
+  renderDailyKPIs(); renderDailyTable(); renderDailyCharts();
+  showAlert('🗑️ ลบรายการแล้ว','success');
+}
+
+function exportDailyCSV(){
+  const headers=['ที่','วันที่','รายการ','หมวดหมู่','ประเภทงบ','แผนงาน','หน่วยงาน','ผู้เบิก','จำนวนเงิน','เลขที่อ้างอิง','สถานะ','หมายเหตุ'];
+  const rows=filteredDaily.map(r=>[r.id,r.date,r.description,r.category,r.budgettype,r.plan,r.unit,r.requester,r.amount,r.ref,r.status,r.note]);
+  let csv='\uFEFF'+[headers,...rows].map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download='Daily_Payment_'+new Date().toISOString().split('T')[0]+'.csv'; a.click();
+}
+
+async function saveDailyToSheet(rec){
+  if(!config.apiKey||!config.sheetId)return;
+  const sheetName = config.sheetDaily||'Daily_Payment';
+  const values=[[rec.id,rec.date,rec.description,rec.category,rec.budgettype,rec.plan,rec.unit,rec.requester,rec.amount,rec.ref,rec.status,rec.note]];
+  try{
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${encodeURIComponent(sheetName)}!A:L:append?valueInputOption=USER_ENTERED&key=${config.apiKey}`,
+      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({values})});
+  }catch(e){console.log('Daily sheet save error:',e);}
+}
+
+// Load daily records from localStorage
+try{
+  const saved=JSON.parse(localStorage.getItem('daily_records')||'[]');
+  if(Array.isArray(saved)) dailyRecords=saved;
+}catch(e){}
+filteredDaily=[...dailyRecords];
+
+// ============================================================
+// INIT
+// ============================================================
+document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+document.getElementById('daily-from').value = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+
+populateDropdowns();
+updateMasterListPreview();
+renderSummary();
+renderCharts();
+renderDetailTable();
+renderGauge();
+renderDailyDashMini();
+
+// Auto-load master list from Sheet if API key exists
+if(config.apiKey) {
+  loadMasterLists(true);
+}
+
+// Wrap loadMasterLists to always refresh preview and dropdowns after loading
+(function() {
+  const _orig = loadMasterLists;
+  loadMasterLists = async function(silent) {
+    await _orig(silent);
+    updateMasterListPreview();
+    populateDropdowns();
+  };
+})();</script>
+</body>
+</html>
