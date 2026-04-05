@@ -14,8 +14,11 @@
 ใช้เวลา ~10 นาที ต่อสำนักงาน
 ขั้นตอนสิ่งที่ทำ1อัปโหลด Budget_Dashboard_Template.xlsx ไปยัง Google Drive2เปิดด้วย Google Sheets → File → Make a copy → ตั้งชื่อตามจังหวัด3แก้ Budget_Type / Plan_Type ตามหน่วยงาน (ถ้าต่างจากมาตรฐาน)4กรอกเป้า CPD ในแท็บ plan_cpd5Extensions → Apps Script → วาง Code.gs + สร้าง index.html วาง index_AppScript.html6Deploy → Web app → Copy URL → แจก URL ให้เจ้าหน้าที่7เปิด URL → ⚙️ ตั้งค่า → ตั้งชื่อหน่วยงาน + ปีงบประมาณ
 
-ข้อดีของแนวทาง A (แยก Sheet ต่างหาก)
+ข้อดีของแนวทางแยก Sheet ต่างหาก
 =======
+สรุปการ Deploy ต่อ 1 จังหวัด
+ใช้เวลา ~10 นาที ต่อสำนักงาน
+ขั้นตอนสิ่งที่ทำ1อัปโหลด Budget_Dashboard_Template.xlsx ไปยัง Google Drive2เปิดด้วย Google Sheets → File → Make a copy → ตั้งชื่อตามจังหวัด3แก้ Budget_Type / Plan_Type ตามหน่วยงาน (ถ้าต่างจากมาตรฐาน) 4 กรอกเป้า CPD ในแท็บ plan_cpd5Extensions → Apps Script → วาง Code.gs + สร้าง index.html วาง index_AppScript.html6Deploy → Web app → Copy URL → แจก URL ให้เจ้าหน้าที่7เปิด URL → ⚙️ ตั้งค่า → ตั้งชื่อหน่วยงาน + ปีงบประมาณ
 แต่ละสำนักงาน เป็นอิสระจากกัน — ข้อมูลไม่ปนกัน
 ถ้าหน่วยงานไหนต้องการปรับแต่งพิเศษ ทำได้เองไม่กระทบหน่วยงานอื่น
 ไม่มีปัญหา permission — แต่ละสำนักงานเป็น admin ของตัวเอง
